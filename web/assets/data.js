@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-06 18:22",
+  updated: "2026-11-06 18:41",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -52,7 +52,8 @@ window.CW = {
             { date: "2026-11-06 16:40", text: "Detectado que UE 5.8 estaba a medias: solo 19 GB en .egstore y ninguna carpeta Engine, pese a que el README decía «instalándose»." },
             { date: "2026-11-06 16:49", text: "Descarga reanudada con el protocolo de Epic: el log confirma «Dispatching install for AppId …UE_5.8»." },
             { date: "2026-11-06 18:13", text: "29,2 GB y ya existen Build.bat, UnrealBuildTool y UnrealEditor.exe. La compilación falla todavía porque falta Engine\\Source (el instalador sigue extrayendo)." },
-            { date: "2026-11-06 18:22", text: "VS 2022 Community con el conjunto de herramientas C++ verificado. Blender no aparece instalado: queda pendiente para el modelado de assets." }
+            { date: "2026-11-06 18:22", text: "VS 2022 Community con el conjunto de herramientas C++ verificado. Blender no aparece instalado: queda pendiente para el modelado de assets." },
+            { date: "2026-11-06 18:39", text: "Aparece Engine\\Source (lo último que faltaba para poder compilar C++). El instalador sigue copiando archivos desde .egstore." }
           ]
         },
         {
@@ -63,7 +64,8 @@ window.CW = {
           log: [
             { date: "2026-11-06 18:02", text: "Añadido *.pdf a Git LFS y creados ADR-001 (motor 5.8), ADR-002 (terreno heightfield) y ADR-003 (Git LFS)." },
             { date: "2026-11-06 18:03", text: "Commit inicial d24acd0 con 43 archivos; el PDF queda como puntero LFS. Árbol de trabajo limpio." },
-            { date: "2026-11-06 18:28", text: "Remoto origin → github.com/jh0ny2k2/CWS.git configurado y rama renombrada a main. Push pendiente: el token guardado de GitHub está caducado." }
+            { date: "2026-11-06 18:28", text: "Remoto origin → github.com/jh0ny2k2/CWS.git configurado y rama renombrada a main." },
+            { date: "2026-11-06 18:40", text: "Push completado: 3 commits y el PDF del plan subidos a GitHub (LFS verificado). El token se usó solo para el push y la URL del remoto quedó limpia." }
           ]
         },
         {
@@ -359,7 +361,8 @@ window.CW = {
         { date: "2026-11-06 16:40", text: "Detectado al auditar la carpeta del motor: UE_5.8 solo contenía .egstore, sin Engine, y el README afirmaba que se estaba instalando." },
         { date: "2026-11-06 16:49", text: "Reanudada la descarga con el protocolo com.epicgames.launcher://apps/UE_5.8?action=install; el log de Epic confirma el dispatch del install." },
         { date: "2026-11-06 18:13", text: "El instalador ya extrajo UnrealEditor.exe, UnrealBuildTool y Build.bat; la primera compilación falló solo porque aún no existe Engine\\Source." },
-        { date: "2026-11-06 18:22", text: "29,1 GB en disco (13,5 GB ya en Engine y 15,6 GB en .egstore). Sigue abierto hasta que termine de extraer y el proyecto compile." }
+        { date: "2026-11-06 18:22", text: "29,1 GB en disco (13,5 GB ya en Engine y 15,6 GB en .egstore). Sigue abierto hasta que termine de extraer y el proyecto compile." },
+        { date: "2026-11-06 18:39", text: "Engine\\Source ya existe y .egstore baja de 19 GB a 3,7 GB: la instalación está terminando." }
       ]
     },
     {

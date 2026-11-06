@@ -76,3 +76,11 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - El repositorio remoto existe y está vacío, pero `git push` falla: el token guardado en el Credential Manager ya no es válido ("Invalid username or token").
 - Pendiente: que el usuario inicie sesión o facilite un token con permiso de escritura; después se subirán los commits `d24acd0` y `cffa2d7`.
 - Archivos afectados: configuración de git (sin cambios de archivos).
+
+## [2026-11-06 18:40] Push a GitHub completado
+
+- Autenticado con el token clásico facilitado por el usuario: el token fine-grained no tenía permiso de escritura (403).
+- Subidos a `https://github.com/jh0ny2k2/CWS.git` los 3 commits (`d24acd0`, `cffa2d7`, `1309219`) y el objeto LFS del PDF del plan.
+- La URL del remoto se dejó limpia (`https://github.com/jh0ny2k2/CWS.git`), sin token incrustado en `.git/config`.
+- La rama local `main` queda en seguimiento de `origin/main`.
+- Archivos afectados: ninguno (operación de git).
