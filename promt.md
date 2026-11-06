@@ -14,7 +14,7 @@ El jugador deberá poder comenzar como un pequeño contratista y terminar gestio
 
 Utiliza preferiblemente:
 
-- Unreal Engine 5.6 o superior.
+- Unreal Engine 5.8.
 - Lenguaje C++ y Blueprints.
 - Nanite para geometría de alta complejidad.
 - Lumen para iluminación global y reflejos dinámicos.

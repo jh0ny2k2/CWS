@@ -31,13 +31,14 @@
     <div class="panel">
       <p class="eyebrow">Tablero de trabajo</p>
       <h1>Kanban
-        <small>Las tarjetas salen de la hoja de ruta: TO DO, DOING y DONE. La última columna recoge los bugs encontrados, que se convierten en tareas de arreglo.</small>
+        <small>Las tarjetas salen de la hoja de ruta: TO DO, DOING y DONE. Cada tarjeta se abre para ver su bitácora. «Bugs encontrados» recoge lo que falla; al arreglarlo pasa a «Bugs arreglados».</small>
       </h1>
       <div class="stats" style="margin-top:16px">
         <div class="stat todo"><b id="kTodo">0</b><span>TO DO</span></div>
         <div class="stat doing"><b id="kDoing">0</b><span>DOING</span></div>
         <div class="stat done"><b id="kDone">0</b><span>DONE</span></div>
         <div class="stat bug"><b id="kBug">0</b><span>BUGS</span></div>
+        <div class="stat fixed"><b id="kFixed">0</b><span>ARREGLADOS</span></div>
       </div>
     </div>
   </section>
@@ -54,6 +55,8 @@
 
   <div class="board" id="board"></div>
 
+  <p class="board-hint">Haz clic en cualquier tarjeta (o pulsa Enter con ella enfocada) para abrir su detalle y ver la bitácora de lo que se ha ido haciendo.</p>
+
   <div class="foot">
     <span>Actualizado: <code id="updated"></code></span>
     <span>Fuente: <code id="source"></code></span>
@@ -61,6 +64,14 @@
   </div>
 
 </main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
+    <button class="modal-x" type="button" data-close aria-label="Cerrar detalle">×</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
 
 <script src="assets/data.js"></script>
 <script src="assets/kanban.js"></script>

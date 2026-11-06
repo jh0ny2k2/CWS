@@ -1,5 +1,5 @@
 Hoja de ruta — Construction World Simulator
-Plan de desarrollo de un simulador de construcción 3D fotorrealista · Unreal Engine 5.6+
+Plan de desarrollo de un simulador de construcción 3D fotorrealista · Unreal Engine 5.8
 
 La idea es desarrollar un videojuego inspirado en Construction Simulator, pero con mayor profundidad en las físicas, la maquinaria, la construcción y el realismo gráfico.
 
@@ -18,7 +18,7 @@ Primer objetivo
 Demo jugable
 
 Motor
-UE 5.6+
+UE 5.8
 
 
 
