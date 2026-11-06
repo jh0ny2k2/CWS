@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-06 18:41",
+  updated: "2026-11-06 19:00",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -9,9 +9,11 @@ window.CW = {
     { title: "Extraer y archivar el Plan Maestro (PDF de 35 páginas)", status: "done" },
     { title: "Crear este panel de seguimiento (hoja de ruta + kanban)", status: "done" },
     { title: "Commit inicial del repositorio y ADR de decisiones", status: "done" },
-    { title: "Terminar la instalación de Unreal Engine 5.8 (extrayendo, ~29 GB)", status: "doing" },
-    { title: "Compilar el proyecto C++ por primera vez", status: "todo" },
-    { title: "Generar el nivel de pruebas /Game/Maps/TestLevel", status: "todo" }
+    { title: "Obtener una instalación de UE 5.8 utilizable (compila y abre el editor)", status: "done" },
+    { title: "Registrar la instalación en Epic Games Launcher (el parche falló el 06/11)", status: "todo" },
+    { title: "Compilar el proyecto C++ por primera vez", status: "done" },
+    { title: "Generar el nivel de pruebas /Game/Maps/TestLevel", status: "done" },
+    { title: "Abrir el editor y probar personaje y vehículo en PIE", status: "doing" }
   ],
 
   phases: [
@@ -36,24 +38,26 @@ window.CW = {
         {
           id: "F0.02",
           title: "Auditar hardware y registrar el equipo de desarrollo",
-          status: "doing",
-          note: "Hay que medir CPU/GPU/RAM/disco y tiempos de compilación reales.",
+          status: "done",
+          evidence: "AMD Ryzen 5 3600 (6C/12T), 15,9 GB RAM, NVIDIA RTX 3060, 63 GB libres en C:. Primera compilación completa: 182,6 s con 3 acciones en paralelo.",
           log: [
             { date: "2026-11-06 16:30", text: "Comprobado el entorno: Node 24 disponible, PDF extraído con pdf-parse y 19 GB de caché de UE 5.8 sin carpeta Engine." },
-            { date: "2026-11-06 18:10", text: "Pendiente de cerrar: falta registrar CPU/GPU/RAM y el primer tiempo de compilación real." }
+            { date: "2026-11-06 18:10", text: "Pendiente de cerrar: falta registrar CPU/GPU/RAM y el primer tiempo de compilación real." },
+            { date: "2026-11-06 19:00", text: "Equipo registrado con WMI: Ryzen 5 3600, 16 GB RAM, RTX 3060 y 63 GB libres. Compilación real medida: 182,6 s (UBT limitó a 3 acciones por RAM disponible)." }
           ]
         },
         {
           id: "F0.03",
           title: "Instalar herramientas: UE 5.8, Visual Studio 2022, Git, Blender",
           status: "doing",
-          note: "UE 5.8 extrayendo archivos (~29 GB): ya existen UnrealEditor y UBT, falta Engine\\Source. VS 2022 Community con C++ verificado; Git y LFS verificados; Blender no está instalado.",
+          note: "El motor compila y ejecuta commandlets. El launcher no lo registra como instalado (parche fallido el 06/11) y Blender sigue sin instalar.",
           log: [
             { date: "2026-11-06 16:40", text: "Detectado que UE 5.8 estaba a medias: solo 19 GB en .egstore y ninguna carpeta Engine, pese a que el README decía «instalándose»." },
             { date: "2026-11-06 16:49", text: "Descarga reanudada con el protocolo de Epic: el log confirma «Dispatching install for AppId …UE_5.8»." },
             { date: "2026-11-06 18:13", text: "29,2 GB y ya existen Build.bat, UnrealBuildTool y UnrealEditor.exe. La compilación falla todavía porque falta Engine\\Source (el instalador sigue extrayendo)." },
             { date: "2026-11-06 18:22", text: "VS 2022 Community con el conjunto de herramientas C++ verificado. Blender no aparece instalado: queda pendiente para el modelado de assets." },
-            { date: "2026-11-06 18:39", text: "Aparece Engine\\Source (lo último que faltaba para poder compilar C++). El instalador sigue copiando archivos desde .egstore." }
+            { date: "2026-11-06 18:39", text: "Aparece Engine\\Source (lo último que faltaba para poder compilar C++). El instalador sigue copiando archivos desde .egstore." },
+            { date: "2026-11-06 19:00", text: "29,9 GB en disco y el motor ya compiló y ejecutó scripts Python. El log del launcher registra «installation failed» a las 17:45 y no lo marca como instalado; no bloquea el trabajo, queda pendiente re-registrarlo." }
           ]
         },
         {
@@ -71,11 +75,14 @@ window.CW = {
         {
           id: "F0.05",
           title: "Proyecto C++ base: GameMode, Enhanced Input, mapa de pruebas y build mínima",
-          status: "doing",
-          note: "Código y configuración escritos. Nunca compilado.",
+          status: "done",
+          evidence: "Build.bat → Succeeded (13/13). TestLevel.umap generado y verificado: 10 actores CW_ (suelo, 3 bloques, vehículo C++, PlayerStart, sol, cielo, skylight y niebla).",
           log: [
             { date: "2026-11-06 16:25", text: "Revisados todos los .h/.cpp: GameMode, HUD, personaje, vehículo, interacción y script Python del nivel de pruebas." },
-            { date: "2026-11-06 18:15", text: "Riesgo identificado: se crean InputAction/InputMappingContext en runtime; es lo primero que puede fallar al compilar en 5.8." }
+            { date: "2026-11-06 18:15", text: "Riesgo identificado: se crean InputAction/InputMappingContext en runtime; es lo primero que puede fallar al compilar en 5.8." },
+            { date: "2026-11-06 18:55", text: "Primer intento de compilación: UBT rechazó los targets por usar BuildSettingsVersion.V5/Unreal5_6. Corregido a V7/Unreal5_8 y relanzada la compilación." },
+            { date: "2026-11-06 18:52", text: "Compilación correcta: 13/13 acciones, los 6 .cpp y el módulo enlazado en UnrealEditor-ConstructionWorld.dll. El Enhanced Input en runtime compila sin errores." },
+            { date: "2026-11-06 18:57", text: "TestLevel.umap creado (26 KB) y reabierto con un script de verificación: los 10 actores CW_ están en el nivel, incluido CW_TestVehicle (CWVehicleBase)." }
           ]
         },
         {
@@ -354,7 +361,7 @@ window.CW = {
     {
       id: "BUG-001",
       title: "La instalación de Unreal Engine 5.8 estaba incompleta",
-      detail: "Solo existían 19 GB en .egstore y ninguna carpeta Engine. Descarga reanudada el 06/11; sin terminar (28,5 GB al escribir esto).",
+      detail: "El motor ya es utilizable (29,9 GB, compila y ejecuta el editor), pero el launcher registró «installation failed» y no lo marca como instalado. Falta re-registrar la instalación.",
       severity: "Crítico",
       status: "En curso",
       log: [
@@ -362,28 +369,33 @@ window.CW = {
         { date: "2026-11-06 16:49", text: "Reanudada la descarga con el protocolo com.epicgames.launcher://apps/UE_5.8?action=install; el log de Epic confirma el dispatch del install." },
         { date: "2026-11-06 18:13", text: "El instalador ya extrajo UnrealEditor.exe, UnrealBuildTool y Build.bat; la primera compilación falló solo porque aún no existe Engine\\Source." },
         { date: "2026-11-06 18:22", text: "29,1 GB en disco (13,5 GB ya en Engine y 15,6 GB en .egstore). Sigue abierto hasta que termine de extraer y el proyecto compile." },
-        { date: "2026-11-06 18:39", text: "Engine\\Source ya existe y .egstore baja de 19 GB a 3,7 GB: la instalación está terminando." }
+        { date: "2026-11-06 18:39", text: "Engine\\Source ya existe y .egstore baja de 19 GB a 3,7 GB: la instalación está terminando." },
+        { date: "2026-11-06 19:00", text: "El motor funciona: compiló el proyecto y ejecutó dos commandlets Python. El log del launcher dice «installation failed» (17:45) y LauncherInstalled.dat no lista UE_5.8; queda re-registrar la instalación." }
       ]
     },
     {
       id: "BUG-002",
       title: "El proyecto C++ nunca se ha compilado",
-      detail: "No hay Binaries, Intermediate ni .sln. Es probable que Enhanced Input por código (MapKey, UInputModifierNegate) dé errores de compilación en 5.8.",
+      detail: "Compilado por primera vez el 06/11/2026: 13/13 acciones correctas y DLL enlazada. No hubo errores en Enhanced Input.",
       severity: "Crítico",
-      status: "Pendiente",
+      status: "Resuelto",
       log: [
         { date: "2026-11-06 16:25", text: "Confirmado que no existe ningún artefacto de compilación en el proyecto." },
-        { date: "2026-11-06 18:15", text: "Primera compilación bloqueada por BUG-001: falta Build.bat del motor." }
+        { date: "2026-11-06 18:15", text: "Primera compilación bloqueada por BUG-001: falta Build.bat del motor." },
+        { date: "2026-11-06 18:50", text: "UBT rechazó los targets por BuildSettingsVersion.V5; corregido a V7 y Unreal5_8." },
+        { date: "2026-11-06 18:52", text: "Resultado: Succeeded. UnrealEditor-ConstructionWorld.dll generada." }
       ]
     },
     {
       id: "BUG-003",
       title: "Falta el mapa /Game/Maps/TestLevel",
-      detail: "DefaultEngine.ini apunta a TestLevel pero Content/Maps está vacía: el editor arrancaría sin nivel de pruebas.",
+      detail: "Resuelto: TestLevel.umap generado con el script Python y verificado abriéndolo de nuevo (10 actores CW_, incluido el vehículo).",
       severity: "Alto",
-      status: "Pendiente",
+      status: "Resuelto",
       log: [
-        { date: "2026-11-06 16:30", text: "Verificado que Content/Maps está vacío y que existe el script cw_build_test_level.py listo para generar el nivel cuando haya editor." }
+        { date: "2026-11-06 16:30", text: "Verificado que Content/Maps está vacío y que existe el script cw_build_test_level.py listo para generar el nivel cuando haya editor." },
+        { date: "2026-11-06 18:55", text: "Script ejecutado con UnrealEditor-Cmd: «Nivel listo: /Game/Maps/TestLevel», 0 errores y 0 avisos." },
+        { date: "2026-11-06 18:57", text: "Verificado con cw_verify_test_level.py: 10 actores CW_ presentes y guardados en el .umap." }
       ]
     },
     {

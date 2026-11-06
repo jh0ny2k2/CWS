@@ -84,3 +84,40 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - La URL del remoto se dejó limpia (`https://github.com/jh0ny2k2/CWS.git`), sin token incrustado en `.git/config`.
 - La rama local `main` queda en seguimiento de `origin/main`.
 - Archivos afectados: ninguno (operación de git).
+
+## [2026-11-06 18:55] Primera compilación: error de ajustes de build corregido
+
+- La instalación de UE 5.8 seguía copiando archivos muy despacio, pero ya tenía `Engine\Source`, `UnrealBuildTool` y `UnrealEditor`; se intentó compilar sin esperar al final.
+- Primer intento: UBT rechazó el target porque `BuildSettingsVersion.V5` mantiene avisos en `Off` mientras `UnrealEditor` (motor instalado) los espera en `Error`; los productos de build se comparten.
+- Corregidos `Source/ConstructionWorld.Target.cs` y `Source/ConstructionWorldEditor.Target.cs`: `BuildSettingsVersion.V7` e `IncludeOrderVersion.Unreal5_8`.
+- Relanzada la compilación de `ConstructionWorldEditor Win64 Development`.
+- Archivos afectados: `Source/ConstructionWorld.Target.cs`, `Source/ConstructionWorldEditor.Target.cs`.
+
+## [2026-11-06 18:53] Compilación correcta del proyecto C++
+
+- `Build.bat ConstructionWorldEditor Win64 Development` terminó con **Result: Succeeded** (13/13 acciones, 182 s).
+- Se compilaron los 6 `.cpp` (personaje, vehículo, interacción, HUD, GameMode y módulo) y se enlazó `Binaries/Win64/UnrealEditor-ConstructionWorld.dll` (311 KB).
+- El Enhanced Input creado por código compila sin errores en 5.8.
+- Herramientas usadas: Visual Studio 14.44 / MSVC 14.44.35207, Windows SDK 10.0.22621.0.
+- Archivos afectados: `Binaries/Win64/*`, `Intermediate/Build/*` (generados, ignorados por git).
+
+## [2026-11-06 18:57] Nivel de pruebas generado y verificado
+
+- `cw_build_test_level.py` creó `/Game/Maps/TestLevel` (26 KB) con 0 errores y 0 avisos.
+- Añadido `Scripts/Python/cw_verify_test_level.py`: reabre el nivel y lista los actores `CW_`.
+- Verificación real: 10 actores presentes (suelo, bloques A/B/C, `CW_TestVehicle` del módulo C++, PlayerStart, sol, SkyAtmosphere, SkyLight y niebla).
+- Archivos afectados: `Content/Maps/TestLevel.umap`, `Scripts/Python/cw_verify_test_level.py`.
+
+## [2026-11-06 19:00] Auditoría de hardware cerrada
+
+- Registrado el equipo: AMD Ryzen 5 3600 (6 núcleos/12 hilos), 15,9 GB de RAM, NVIDIA RTX 3060 y 63 GB libres en C:.
+- Medido el primer tiempo de compilación real: 182,6 s, con UBT limitado a 3 acciones en paralelo por memoria disponible.
+- Archivos afectados: `web/assets/data.js`, `docs/ARQUITECTURA.md`, `README.md`.
+
+## [2026-11-06 19:02] Estado real del motor y documentación sincronizada
+
+- El motor sigue siendo funcional (29,9 GB), pero el log de Epic registra `installation failed` a las 17:45 y `LauncherInstalled.dat` no incluye UE 5.8: el launcher no lo marca como instalado. Se anota como pendiente, no bloquea compilar ni ejecutar.
+- Actualizados `README.md`, `docs/ARQUITECTURA.md` y el panel: F0.02 y F0.05 hechos, BUG-003 resuelto, BUG-001 actualizado con el fallo de registro.
+- Panel verificado otra vez con jsdom: 5 columnas, 104 tarjetas, 4 bugs abiertos y 4 arreglados, modal y cierre correctos.
+- Nota: el motor añadió solo `AndroidFileServerRuntimeSettings` a `Config/DefaultEngine.ini` al arrancar; se conserva (token inocuo).
+- Archivos afectados: `README.md`, `docs/ARQUITECTURA.md`, `web/assets/data.js`, `memoria.md`, `Config/DefaultEngine.ini`.

@@ -3,7 +3,7 @@
 Estado actual: **H0 — Fundaciones** y parte de **H1-A** (esqueleto C++, personaje, cámaras, interacción y entrar/salir de un vehículo).
 El objetivo inmediato es tener un proyecto que compile y se abra en Unreal Engine. El resto de sistemas (conducción, terreno deformable, contratos, mundo abierto) se construirá sobre esta base.
 
-> Importante: el código de este repositorio **todavía no se ha compilado** en este equipo. Unreal Engine 5.8 se está instalando y la primera compilación está pendiente.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (13/13 acciones, `UnrealEditor-ConstructionWorld.dll`) y el nivel `/Game/Maps/TestLevel` está generado y verificado con 10 actores. Falta probar personaje y vehículo en PIE y empaquetar una build base.
 
 ## Panel de seguimiento
 
@@ -68,7 +68,7 @@ Scripts/Python/
 docs/                               Documentación ampliada
 ```
 
-Contenido implementado en código (pendiente de compilar en tu equipo):
+Contenido implementado en código (compilado y con nivel de pruebas generado el 06/11/2026):
 
 - Módulo C++ `ConstructionWorld` con dependencias Core/CoreUObject/Engine/InputCore/EnhancedInput.
 - `ACWGameMode`: pawn por defecto = personaje propio.
@@ -87,13 +87,11 @@ No implementado todavía (no lo vamos a fingir): conducción y física de vehíc
 
 ## 3. Lo que tienes que hacer ahora
 
-### Paso 1 — Instalar Unreal Engine
+### Paso 1 — Unreal Engine
 
-Se está instalando **Unreal Engine 5.8** en `C:\Program Files\Epic Games\UE_5.8`. Espera a que termine.
+**Unreal Engine 5.8** está instalado en `C:\Program Files\Epic Games\UE_5.8` y es plenamente funcional (compila C++ y ejecuta el editor). El launcher de Epic no lo marca como instalado tras un parche fallido; si quieres que aparezca en la biblioteca, vuelve a lanzar la instalación desde **Epic Games Launcher → Biblioteca → Motor → +** sobre la misma ruta.
 
-Si tuvieras que reinstalarlo, ve a **Epic Games Launcher → Biblioteca → Motor → +**, elige la versión y, si C: va justo de espacio, cambia la ubicación a `J:\Epic Games\UE_5.8`.
-
-El proyecto ya está asociado a `"EngineAssociation": "5.8"`. Si instalas otra versión, cambia ese valor en `ConstructionWorld.uproject` (o elige la versión en el diálogo al abrir el proyecto).
+El proyecto ya está asociado a `"EngineAssociation": "5.8"`.
 
 ### Paso 2 — Abrir y compilar el proyecto
 
@@ -154,9 +152,9 @@ Pulsa **Play** (Alt+P). Debes ver el escenario, el cubo-placeholder del personaj
 
 ## 5. Siguiente hito
 
-1. Validar esta compilación contigo (errores reales de compilación incluidos).
-2. Cerrar Fase 2: primera persona con malla real, animaciones y mapa de controles configurable.
-3. Fase 3: conducción, motor, excavadora y camión volquete funcionales.
-4. Fase 4: prototipo de terreno deformable (la decisión técnica más importante del proyecto).
+1. Probar en PIE el personaje (1ª/3ª persona, interacción) y el vehículo (entrar/salir).
+2. Cerrar H1-A: primera persona con malla real, animaciones y mapa de controles configurable.
+3. H1-B: conducción, motor, excavadora y camión volquete funcionales.
+4. H2: prototipo de terreno deformable (la decisión técnica más importante del proyecto).
 
 Objetivo del MVP: aceptar un contrato, excavar 40 m³, cargar el camión, transportar, descargar y cobrar, con guardado de partida.
