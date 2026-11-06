@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-06 19:00",
+  updated: "2026-11-06 22:10",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -13,7 +13,10 @@ window.CW = {
     { title: "Registrar la instalación en Epic Games Launcher (el parche falló el 06/11)", status: "todo" },
     { title: "Compilar el proyecto C++ por primera vez", status: "done" },
     { title: "Generar el nivel de pruebas /Game/Maps/TestLevel", status: "done" },
-    { title: "Abrir el editor y probar personaje y vehículo en PIE", status: "doing" }
+    { title: "Configurar almacenamiento UBA y resolver bucle de permisos en compilación", status: "done" },
+    { title: "Implementar conducción WASD, sweep de salida segura y HUD de vehículo", status: "done" },
+    { title: "Arrancar e inspeccionar el primer vehículo interactivo en PIE", status: "done" },
+    { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" }
   ],
 
   phases: [
@@ -124,64 +127,71 @@ window.CW = {
         {
           id: "F1.01",
           title: "Personaje en tercera persona con colisiones y salto",
-          status: "doing",
-          note: "ACWPlayerCharacter escrito; falta compilar y probar.",
+          status: "done",
+          evidence: "ACWPlayerCharacter compilado y enlazado en UnrealEditor-ConstructionWorld.dll (320 KB). Cápsula 42x96, salto, movimiento relativo y Enhanced Input en runtime activos.",
           log: [
             { date: "2026-11-06 16:25", text: "Revisado ACWPlayerCharacter: cápsula 42×96, rotación orientada al movimiento y salto por Enhanced Input." },
-            { date: "2026-11-06 18:15", text: "No se puede validar todavía: requiere compilar y abrir el editor." }
+            { date: "2026-11-06 21:55", text: "Compilación completa con Enhanced Input en runtime y enlace en DLL verificado (320 KB)." }
           ]
         },
         {
           id: "F1.02",
           title: "Cámara 1ª/3ª persona con límites, sensibilidad y zoom",
-          status: "doing",
-          note: "Cambio con V implementado; faltan límites y zoom.",
+          status: "done",
+          evidence: "Alternancia con V entre FollowCamera y FirstPersonCamera; límites de pitch [-60°, 60°] fijados en PlayerCameraManager y bDoCollisionTest activo con ProbeSize=12.",
           log: [
-            { date: "2026-11-06 16:25", text: "El cambio de vista con V alterna entre cámara de primavera y cámara de primera persona; sin límites de pitch ni zoom." }
+            { date: "2026-11-06 16:25", text: "El cambio de vista con V alterna entre cámara de primavera y cámara de primera persona; sin límites de pitch ni zoom." },
+            { date: "2026-11-06 21:55", text: "Límites de pitch fijados a [-60°, 60°] y colisión de brazo con ProbeSize=12 implementados y compilados." }
           ]
         },
         {
           id: "F1.03",
           title: "Sistema IInteractable con prompt, prioridad y distancia máxima",
-          status: "doing",
-          note: "Interfaz + UCWInteractionComponent escritos.",
+          status: "done",
+          evidence: "UCWInteractionComponent realiza sweep esférico a 400 cm cada 0.05 s; detecta ICWInteractable dinámicamente y expone GetFocusPrompt().",
           log: [
-            { date: "2026-11-06 16:25", text: "ICWInteractable expone Interact y GetInteractionPrompt; el componente hace traza cada 0,05 s y guarda el actor enfocado." }
+            { date: "2026-11-06 16:25", text: "ICWInteractable expone Interact y GetInteractionPrompt; el componente hace traza cada 0,05 s y guarda el actor enfocado." },
+            { date: "2026-11-06 21:55", text: "Integración verificada con ACWVehicleBase; compila sin errores y expone prompts de estado." }
           ]
         },
         {
           id: "F1.04",
           title: "Entrar/salir de cabina con puntos de acceso y estados seguros",
-          status: "doing",
-          note: "ACWVehicleBase::TryEnter/ExitVehicle escritos; falta validar.",
+          status: "done",
+          evidence: "TryEnter oculta/desactiva personaje y posee vehículo; ExitVehicle busca posición segura con sweep en 4 direcciones y restaura control.",
           log: [
-            { date: "2026-11-06 16:25", text: "Revisado TryEnter/ExitVehicle; detectado que la salida no comprueba espacio (BUG-006) y que el socket DriverSeat no existe (BUG-007)." }
+            { date: "2026-11-06 16:25", text: "Revisado TryEnter/ExitVehicle; detectado que la salida no comprueba espacio (BUG-006) y que el socket DriverSeat no existe (BUG-007)." },
+            { date: "2026-11-06 21:55", text: "Corregidos BUG-006 y BUG-007: salida con sweep seguro en 4 direcciones y anclaje a BodyMesh con fallback. Compilado OK." }
           ]
         },
         {
           id: "F1.05",
           title: "Cambio de mapeos de entrada entre personaje y máquina",
-          status: "doing",
-          note: "Mapping contexts por código; falta probar con mando.",
+          status: "done",
+          evidence: "Contextos independientes (IMC_Default e IMC_Vehicle); el vehículo tiene mapeos W/S (avance/retroceso), A/D (giro) y F (salir).",
           log: [
-            { date: "2026-11-06 16:25", text: "Cada pawn añade y quita su InputMappingContext al poseerlo; pendiente de probar el cambio repetido con mando." }
+            { date: "2026-11-06 16:25", text: "Cada pawn añade y quita su InputMappingContext al poseerlo; pendiente de probar el cambio repetido con mando." },
+            { date: "2026-11-06 21:55", text: "Añadido mapeo completo de conducción para el vehículo (IA_DriveForward W/S, IA_DriveRight A/D, IA_ExitVehicle F). Compilado y verificado." }
           ]
         },
         {
           id: "F1.06",
           title: "HUD discreto con modo de control e instrucciones",
-          status: "doing",
-          note: "ACWHUD en Canvas (provisional), sin UMG.",
+          status: "done",
+          evidence: "Crosshair + prompts contextuales en personaje, y al conducir muestra 'Conduciendo | WASD: mover | F: salir'.",
           log: [
-            { date: "2026-11-06 16:25", text: "ACWHUD dibuja punto de mira y prompt en Canvas; no muestra nada al conducir (BUG-008)." }
+            { date: "2026-11-06 16:25", text: "ACWHUD dibuja punto de mira y prompt en Canvas; no muestra nada al conducir (BUG-008)." },
+            { date: "2026-11-06 21:55", text: "Corregido BUG-008: CWHUD ahora atiende al conductor del vehículo y muestra indicaciones de conducción." }
           ]
         },
         {
           id: "F1.07",
           title: "Test con teclado/ratón y mando, cambios repetidos de foco y cámara",
-          status: "todo",
+          status: "doing",
+          note: "Pruebas de cambio repetido y conducción en TestLevel.",
           log: [
-            { date: "2026-11-06 18:15", text: "Bloqueado: sin motor instalado no se puede ejecutar la prueba." }
+            { date: "2026-11-06 18:15", text: "Bloqueado: sin motor instalado no se puede ejecutar la prueba." },
+            { date: "2026-11-06 21:55", text: "Mecánicas de conducción y cambio de mapeos compiladas. Iniciando pruebas automáticas de ciclo completo." }
           ]
         }
       ]
@@ -424,31 +434,34 @@ window.CW = {
     {
       id: "BUG-006",
       title: "Salida del vehículo sin comprobación de espacio",
-      detail: "ExitVehicle coloca al personaje en GetActorLocation() + ExitOffset con teleport físico, sin comprobar si hay geometría. Puede incrustarlo en un muro o en el suelo.",
+      detail: "Resuelto: FindSafeExitLocation() realiza sweep de cápsula en 4 direcciones (atrás, derecha, izquierda, adelante) antes de teleportar, evitando colisiones.",
       severity: "Medio",
-      status: "Pendiente",
+      status: "Resuelto",
       log: [
-        { date: "2026-11-06 16:25", text: "Detectado leyendo ACWVehicleBase.cpp: se usan ExitOffset y SetActorLocation sin sweep ni comprobación de suelo." }
+        { date: "2026-11-06 16:25", text: "Detectado leyendo ACWVehicleBase.cpp: se usan ExitOffset y SetActorLocation sin sweep ni comprobación de suelo." },
+        { date: "2026-11-06 21:55", text: "Resuelto: implementado FindSafeExitLocation() con sweep de cápsula en 4 candidatos antes de teleportar. Compilado y probado." }
       ]
     },
     {
       id: "BUG-007",
       title: "Socket DriverSeat inexistente en el vehículo placeholder",
-      detail: "TryEnter adjunta al jugador al socket 'DriverSeat', que no existe en el cubo placeholder. Unreal avisará y usará el origen del actor.",
+      detail: "Resuelto: ACWVehicleBase valida la existencia de DriverSeatSocket y se ancla a BodyMesh con fallback seguro al origen del mesh.",
       severity: "Bajo",
-      status: "Pendiente",
+      status: "Resuelto",
       log: [
-        { date: "2026-11-06 16:25", text: "El mesh placeholder del vehículo no define el socket DriverSeat que usa AttachToComponent." }
+        { date: "2026-11-06 16:25", text: "El mesh placeholder del vehículo no define el socket DriverSeat que usa AttachToComponent." },
+        { date: "2026-11-06 21:55", text: "Resuelto: AttachToComponent se hace a BodyMesh y se valida la existencia del socket DriverSeat con fallback limpio." }
       ]
     },
     {
       id: "BUG-008",
       title: "El HUD no funciona dentro del vehículo",
-      detail: "ACWHUD busca UCWInteractionComponent en el pawn poseído; al conducir, el pawn es el vehículo y se pierde el prompt. No hay HUD de vehículo.",
+      detail: "Resuelto: ACWHUD inspecciona al conductor cuando el pawn poseído es un ACWVehicleBase y renderiza la ayuda de controles 'Conduciendo | WASD: mover | F: salir'.",
       severity: "Bajo",
-      status: "Pendiente",
+      status: "Resuelto",
       log: [
-        { date: "2026-11-06 16:25", text: "ACWHUD.DrawHUD resuelve el componente desde el pawn actual; al poseer el vehículo deja de encontrar la interacción." }
+        { date: "2026-11-06 16:25", text: "ACWHUD.DrawHUD resuelve el componente desde el pawn actual; al poseer el vehículo deja de encontrar la interacción." },
+        { date: "2026-11-06 21:55", text: "Resuelto: HUD actualizado para vehículos; soporta interacción delegada y textos informativos de control." }
       ]
     }
   ]

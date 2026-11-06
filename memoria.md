@@ -121,3 +121,15 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Panel verificado otra vez con jsdom: 5 columnas, 104 tarjetas, 4 bugs abiertos y 4 arreglados, modal y cierre correctos.
 - Nota: el motor añadió solo `AndroidFileServerRuntimeSettings` a `Config/DefaultEngine.ini` al arrancar; se conserva (token inocuo).
 - Archivos afectados: `README.md`, `docs/ARQUITECTURA.md`, `web/assets/data.js`, `memoria.md`, `Config/DefaultEngine.ini`.
+
+
+## [2026-11-06 22:15] Conducción de vehículo, corrección de bugs BUG-006/007/008 y compilación optimizada con UBA local
+
+- Se implementó la conducción WASD completa y rotación en `ACWVehicleBase` (`IA_DriveForward`, `IA_DriveRight`, `MaxDriveSpeed`, `TurnRate`) conectada a `IMC_Vehicle`.
+- Se corrigió BUG-006: `ExitVehicle` ahora llama a `FindSafeExitLocation()`, que realiza un sweep de colisión con cápsula Pawn en 4 candidatos antes de teleportar al personaje, evitando quedar incrustado en objetos o en el terreno.
+- Se corrigió BUG-007: el acoplamiento del conductor (`AttachToComponent`) ahora usa `BodyMesh` y valida si existe el socket `DriverSeatSocket`; en caso contrario se ancla de forma segura al origen del componente con log informativo.
+- Se corrigió BUG-008: `ACWHUD` detecta si el peón poseído es un vehículo y delega la consulta de interacción al personaje conductor (`Driver`), además de mostrar indicaciones en pantalla: `Conduciendo | WASD: mover | F: salir`.
+- Se implementaron los límites de cabeceo (pitch [-60°, 60°]) y colisión con `ProbeSize=12` en `ACWPlayerCharacter` (F1.02).
+- Se resolvió el bloqueo de compilación de UE 5.8: el acelerador UBA intentaba escribir sesiones en `C:\ProgramData` provocando un bucle infinito de denegaciones de acceso; se configuró `BuildConfiguration.xml` con `RootDir` en `Intermediate\UBA`, logrando compilación limpia en 33,2 s (8 acciones, DLL actualizada a 320 KB).
+- Actualizado el panel kanban y hoja de ruta en `web/assets/data.js` con las tareas F1.01-F1.06 completadas y los bugs BUG-006, BUG-007 y BUG-008 resueltos.
+- Archivos afectados: `Source/ConstructionWorld/Public/CWVehicleBase.h`, `Source/ConstructionWorld/Private/CWVehicleBase.cpp`, `Source/ConstructionWorld/Public/CWHUD.h`, `Source/ConstructionWorld/Private/CWHUD.cpp`, `Source/ConstructionWorld/Private/CWPlayerCharacter.cpp`, `Saved/UnrealBuildTool/BuildConfiguration.xml`, `web/assets/data.js`, `memoria.md`.

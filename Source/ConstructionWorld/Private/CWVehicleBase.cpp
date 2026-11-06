@@ -15,11 +15,13 @@
 #include "InputActionValue.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
+#include "InputModifiers.h"
 #include "UObject/ConstructorHelpers.h"
 
 ACWVehicleBase::ACWVehicleBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// Tick necesario para mover el vehiculo cada frame
+	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	SetRootComponent(CollisionBox);
@@ -58,8 +60,10 @@ void ACWVehicleBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInput->BindAction(ExitAction, ETriggerEvent::Started, this, &ACWVehicleBase::ExitPressed);
-		EnhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleLook);
+		EnhancedInput->BindAction(ExitAction,         ETriggerEvent::Started,   this, &ACWVehicleBase::ExitPressed);
+		EnhancedInput->BindAction(LookAction,         ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleLook);
+		EnhancedInput->BindAction(DriveForwardAction, ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleMoveForward);
+		EnhancedInput->BindAction(DriveRightAction,   ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleMoveRight);
 	}
 	else
 	{
@@ -67,6 +71,32 @@ void ACWVehicleBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 
 	ApplyVehicleMappingContext();
+}
+
+void ACWVehicleBase::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!Driver)
+	{
+		return;
+	}
+
+	// Rotacion sobre Z (giro izquierda/derecha con A/D)
+	if (!FMath::IsNearlyZero(DriveInput.Y))
+	{
+		const FRotator DeltaRot(0.f, DriveInput.Y * TurnRate * DeltaSeconds, 0.f);
+		AddActorLocalRotation(DeltaRot);
+	}
+
+	// Desplazamiento adelante/atras con W/S
+	if (!FMath::IsNearlyZero(DriveInput.X))
+	{
+		const FVector Delta = GetActorForwardVector() * DriveInput.X * MaxDriveSpeed * DeltaSeconds;
+		AddActorWorldOffset(Delta, true);
+	}
+
+	DriveInput = FVector2D::ZeroVector;
 }
 
 void ACWVehicleBase::EnsureInputObjects()
@@ -82,9 +112,25 @@ void ACWVehicleBase::EnsureInputObjects()
 	LookAction = NewObject<UInputAction>(this, TEXT("IA_VehicleLook"));
 	LookAction->ValueType = EInputActionValueType::Axis2D;
 
+	DriveForwardAction = NewObject<UInputAction>(this, TEXT("IA_DriveForward"));
+	DriveForwardAction->ValueType = EInputActionValueType::Axis1D;
+
+	DriveRightAction = NewObject<UInputAction>(this, TEXT("IA_DriveRight"));
+	DriveRightAction->ValueType = EInputActionValueType::Axis1D;
+
 	VehicleMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Vehicle"));
+
 	VehicleMappingContext->MapKey(ExitAction, EKeys::F);
 	VehicleMappingContext->MapKey(LookAction, EKeys::Mouse2D);
+
+	// WASD para conducir
+	VehicleMappingContext->MapKey(DriveForwardAction, EKeys::W);
+	FEnhancedActionKeyMapping& BackMap = VehicleMappingContext->MapKey(DriveForwardAction, EKeys::S);
+	BackMap.Modifiers.Add(NewObject<UInputModifierNegate>(this));
+
+	VehicleMappingContext->MapKey(DriveRightAction, EKeys::D);
+	FEnhancedActionKeyMapping& LeftMap = VehicleMappingContext->MapKey(DriveRightAction, EKeys::A);
+	LeftMap.Modifiers.Add(NewObject<UInputModifierNegate>(this));
 }
 
 void ACWVehicleBase::ApplyVehicleMappingContext()
@@ -100,6 +146,50 @@ void ACWVehicleBase::ApplyVehicleMappingContext()
 	{
 		Subsystem->AddMappingContext(VehicleMappingContext, 1);
 	}
+}
+
+FVector ACWVehicleBase::FindSafeExitLocation() const
+{
+	const UWorld* World = GetWorld();
+	if (!Driver || !World)
+	{
+		return GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
+	}
+
+	// Capsula del personaje para el sweep
+	const float HalfHeight = 96.f;
+	const float Radius     = 42.f;
+	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+
+	FCollisionQueryParams Params(TEXT("ExitSweep"), false, this);
+	Params.AddIgnoredActor(Driver);
+
+	// Candidatos en orden de preferencia: atras, derecha, izquierda, delante
+	const FVector LocalOffsets[] = {
+		ExitOffset,
+		FVector(0.f,  FMath::Abs(ExitOffset.X), ExitOffset.Z),
+		FVector(0.f, -FMath::Abs(ExitOffset.X), ExitOffset.Z),
+		FVector( FMath::Abs(ExitOffset.X), 0.f, ExitOffset.Z)
+	};
+
+	for (const FVector& LocalOff : LocalOffsets)
+	{
+		const FVector WorldCandidate = GetActorLocation() + GetActorRotation().RotateVector(LocalOff);
+		FHitResult Hit;
+		const bool bBlocked = World->SweepSingleByChannel(
+			Hit, WorldCandidate, WorldCandidate,
+			FQuat::Identity, ECC_Pawn, CapsuleShape, Params);
+
+		if (!bBlocked)
+		{
+			return WorldCandidate;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("CWVehicleBase::FindSafeExitLocation - no se encontro un punto libre; "
+		     "usando offset por defecto."));
+	return GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
 }
 
 bool ACWVehicleBase::TryEnter(ACWPlayerCharacter* Player)
@@ -123,7 +213,20 @@ bool ACWVehicleBase::TryEnter(ACWPlayerCharacter* Player)
 	{
 		Movement->DisableMovement();
 	}
-	Player->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale, DriverSeatSocket);
+
+	// BUG-007 mitigado: adjuntamos al BodyMesh. Si DriverSeat no existe en el placeholder
+	// Unreal usa el origen del mesh (comportamiento seguro). Se avisa en log.
+	if (!BodyMesh->DoesSocketExist(DriverSeatSocket))
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("CWVehicleBase: El socket '%s' no existe en BodyMesh. "
+			     "Se usara el origen del mesh hasta que se modele la cabina."),
+			*DriverSeatSocket.ToString());
+	}
+	Player->AttachToComponent(
+		BodyMesh,
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		DriverSeatSocket);
 
 	PC->Possess(this);
 	return true;
@@ -156,8 +259,9 @@ void ACWVehicleBase::ExitVehicle()
 			Movement->SetMovementMode(MOVE_Walking);
 		}
 
-		const FVector ExitLocation = GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
-		Driver->SetActorLocation(ExitLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		// BUG-006 corregido: sweep para encontrar un punto libre antes de teleportar
+		const FVector SafeLocation = FindSafeExitLocation();
+		Driver->SetActorLocation(SafeLocation, false, nullptr, ETeleportType::TeleportPhysics);
 
 		ACWPlayerCharacter* OldDriver = Driver;
 		Driver = nullptr;
@@ -177,9 +281,18 @@ void ACWVehicleBase::VehicleLook(const FInputActionValue& Value)
 	{
 		return;
 	}
-
 	AddControllerYawInput(LookAxis.X);
 	AddControllerPitchInput(LookAxis.Y);
+}
+
+void ACWVehicleBase::VehicleMoveForward(const FInputActionValue& Value)
+{
+	DriveInput.X = Value.Get<float>();
+}
+
+void ACWVehicleBase::VehicleMoveRight(const FInputActionValue& Value)
+{
+	DriveInput.Y = Value.Get<float>();
 }
 
 void ACWVehicleBase::Interact_Implementation(AActor* Interactor)

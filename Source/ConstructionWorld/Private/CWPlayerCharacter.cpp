@@ -44,6 +44,10 @@ ACWPlayerCharacter::ACWPlayerCharacter()
 	CameraBoom->bUsePawnControlRotation = true;
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 12.f;
+	// F1.02: evitar que la camara atraviese el suelo o se ponga sobre la cabeza
+	CameraBoom->bDoCollisionTest = true;
+	CameraBoom->ProbeChannel = ECC_Camera;
+	CameraBoom->ProbeSize = 12.f;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -85,6 +89,10 @@ void ACWPlayerCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
+
+		// F1.02: limitar pitch para que la camara no pase por debajo del suelo ni por encima de la cabeza
+		PC->PlayerCameraManager->ViewPitchMin = -60.f;
+		PC->PlayerCameraManager->ViewPitchMax =  60.f;
 	}
 }
 
