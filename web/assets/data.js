@@ -62,7 +62,8 @@ window.CW = {
           note: "Primer commit d24acd0; LFS activo (incluye PDF) y 3 ADR creados. Faltan ramas y CI.",
           log: [
             { date: "2026-11-06 18:02", text: "Añadido *.pdf a Git LFS y creados ADR-001 (motor 5.8), ADR-002 (terreno heightfield) y ADR-003 (Git LFS)." },
-            { date: "2026-11-06 18:03", text: "Commit inicial d24acd0 con 43 archivos; el PDF queda como puntero LFS. Árbol de trabajo limpio." }
+            { date: "2026-11-06 18:03", text: "Commit inicial d24acd0 con 43 archivos; el PDF queda como puntero LFS. Árbol de trabajo limpio." },
+            { date: "2026-11-06 18:28", text: "Remoto origin → github.com/jh0ny2k2/CWS.git configurado y rama renombrada a main. Push pendiente: el token guardado de GitHub está caducado." }
           ]
         },
         {
