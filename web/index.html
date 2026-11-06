@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoja de ruta · Construction World</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ffb400'/%3E%3Ctext x='50' y='68' font-size='52' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%2316181b'%3ECW%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">CW</div>
+      <div class="brand-text">
+        <strong id="brandName">Construction World</strong>
+        <span id="brandEngine">Unreal Engine 5.8</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="active">Hoja de ruta</a>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="panel">
+      <p class="eyebrow">Plan maestro · Estado real del proyecto</p>
+      <h1>Hoja de ruta
+        <small>Todo lo que falta está marcado como pendiente. Solo se marca <b>hecho</b> lo que existe y se ha verificado.</small>
+      </h1>
+      <div class="big-progress">
+        <div class="pct" id="globalPct">0<span>%</span></div>
+        <div class="bar"><i id="globalBar" style="width:0%"></i></div>
+      </div>
+      <div class="stats">
+        <div class="stat done"><b id="statDone">0</b><span>Hechas</span></div>
+        <div class="stat doing"><b id="statDoing">0</b><span>En curso</span></div>
+        <div class="stat todo"><b id="statTodo">0</b><span>Pendientes</span></div>
+        <div class="stat bug"><b id="statBugs">0</b><span>Bugs abiertos</span></div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <p class="eyebrow">Ahora mismo</p>
+      <ul class="now-list" id="nowList"></ul>
+    </aside>
+  </section>
+
+  <div class="controls">
+    <input class="search" id="search" type="search" placeholder="Buscar tarea o ID (ej. F3.02, terreno, cámara)…" autocomplete="off">
+    <div class="chips" id="chips">
+      <button class="chip active" data-filter="all">Todas</button>
+      <button class="chip" data-filter="doing">En curso</button>
+      <button class="chip" data-filter="todo">Pendientes</button>
+      <button class="chip" data-filter="done">Hechas</button>
+    </div>
+    <span class="meta-note" id="metaNote"></span>
+  </div>
+
+  <div id="phases"></div>
+
+  <div class="foot">
+    <span>Actualizado: <code id="updated"></code></span>
+    <span>Fuente: <code id="source"></code></span>
+    <span id="footCounts"></span>
+    <span>Recarga la página para ver los cambios (Ctrl+F5).</span>
+  </div>
+
+</main>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

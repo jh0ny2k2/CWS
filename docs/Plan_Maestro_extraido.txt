@@ -1,0 +1,1393 @@
+CWS / GAME DEVELOPMENT BLUEPRINT
+CONSTRUCTION
+WORLD
+SIMULATOR
+Documento maestro de diseño, desarrollo y producción
+DESDE UNA EXCAVADORA FUNCIONAL
+HASTA UN SIMULADOR DE MUNDO ABIERTO
+EDICIÓN 1.0 • 4 DE NOVIEMBRE DE 2026 • PLAN DE REFERENCIA
+
+-- 1 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 2
+Guía de lectura y decisiones iniciales
+Este documento define una visión completa de Construction World Simulator (nombre provisional) y, sobre todo,
+una ruta de ejecución realista para pasar de una idea a un simulador jugable. Integra diseño del juego, arquitectura
+en Unreal Engine, física de excavación, flota, pipeline artístico, IA para programar, obtención de assets, costes,
+métricas, pruebas y una hoja de ruta con hitos verificables.
+Principio rector. Primero una obra pequeña y divertida; después una simulación más profunda; finalmente un
+mundo abierto. No se comienza creando una ciudad, sino validando que excavar, cargar y transportar
+funciona de verdad.
+Estado de partida
+Elemento Situación actual Próximo paso
+Concepto y alcance Definidos a nivel de diseño Confirmar prioridades
+Motor y stack Propuesta: Unreal Engine 5.x, C++ y
+Blueprints Fijar versión en el entorno real
+Código jugable No verificado / sin implementación
+aportada Crear repositorio y build básica
+Excavadora 3D Requisitos establecidos; asset no
+elegido
+Encontrar o preparar modelo
+articulable
+Terreno deformable Mayor riesgo técnico Hacer prueba de concepto aislada
+Plataformas PC como objetivo inicial propuesto Verificar hardware y sistema operativo
+Cómo interpretar el plan
+Objetivo, entregable y criterio de salida son tres cosas diferentes. Un objetivo describe lo que se busca; el
+entregable es un resultado visible (build, archivo, vídeo o prueba); el criterio de salida es la evidencia que permite
+pasar a la fase siguiente. Las duraciones y presupuestos son estimaciones de planificación, no promesas ni hechos
+comprobados.
+Índice de navegación
+1. Visión de producto y alcance
+2. Experiencia de juego y sistemas
+3. Arquitectura, física y decisiones técnicas
+4. Arte, modelos 3D, herramientas e IA
+5. Hoja de ruta completa en diez fases
+6. Plan de ejecución de las primeras dieciséis semanas
+7. Calidad, rendimiento, riesgos, equipo y presupuesto
+8. Anexos: prompts reutilizables, registros y lanzamiento
+
+-- 2 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 3
+PARTE I · VISIÓN DE PRODUCTO
+1. Identidad del videojuego
+Nombre de trabajo: Construction World Simulator. Género: simulación de maquinaria, construcción, logística y
+gestión empresarial. Vista: primera y tercera persona, cámara de cabina y cámaras de trabajo. Plataforma inicial
+recomendada: Windows PC; otras plataformas se valorarán después. Motor: Unreal Engine 5.x, manteniendo una
+versión concreta y estable durante cada ciclo de producción.
+1.1 Promesa al jugador
+Ser propietario y operador de una empresa de construcción en un entorno vivo: aceptar un contrato, visitar una
+parcela, elegir maquinaria y materiales, ejecutar trabajos físicos, superar imprevistos y entregar una obra que
+permanece en el mundo. La calidad buscada es fotorrealista, pero la diversión proviene de la respuesta de las
+máquinas, del trabajo con materiales y de las decisiones del jugador.
+1.2 Cinco pilares no negociables
+ Maquinaria creíble: movimientos articulados, cargas, agarre, cilindros y sonidos ligados a las acciones.
+ Terreno que responde: se puede retirar y depositar material; la modificación persiste y afecta al trabajo
+posterior.
+ Construcción visible: las obras avanzan por fases; no aparecen terminadas tras una simple barra de progreso.
+ Economía con consecuencias: combustible, alquiler, personal, materiales, daños y plazos alteran la
+rentabilidad.
+ Escalabilidad técnica: el prototipo funciona en una parcela pequeña antes de activar mundo abierto, IA
+intensiva o multijugador.
+1.3 Público y experiencia objetivo
+Se dirige a jugadores interesados en vehículos pesados, oficios, simuladores, logística y construcción. Se proponen
+dos modos: Asistido (controles simplificados, indicadores y ayudas) y Simulación (maniobras manuales, consumo y
+límites mecánicos más estrictos). El objetivo es que ambos compartan el mismo mundo y las mismas reglas
+económicas, con ayudas configurables.
+1.4 Alcance y exclusiones por versión
+Versión Incluye Queda fuera conscientemente
+Prueba de concepto Una excavadora temporal, terreno test
+y medición de volumen Ciudad, contratos complejos, arte AAA
+Vertical slice Excavar, cargar camión, descargar,
+cobrar y guardar
+Gran flota, NPC autónomos,
+multijugador
+Alpha Diversos contratos, varios suelos,
+economía básica, zona ampliada Decenas de edificios completos
+Beta Sistema de obras, mundo más
+conectado, IA limitada, optimización
+Multijugador si compromete
+estabilidad
+Lanzamiento inicial Experiencia estable, coherente y
+medible Contenido futuro no demostrado
+
+-- 3 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 4
+Límite de alcance. «Totalmente real» no equivale a simular cada molécula de tierra o cada componente de un
+motor. El objetivo es realismo convincente y verificable con un coste computacional asumible.
+2. Bucle principal de juego
+Figura 1 · Bucle central de juego.
+2.1 Bucle corto: minuto a minuto
+El jugador ajusta la posición de la máquina, mueve pluma y brazo, baja la cuchara, extrae material, controla peso y
+vuelca al camión. El feedback debe ser inmediato: sonido hidráulico, partículas, fuerza aparente, animación y
+contador de volumen. Si falla el llenado de la cuchara, la causa debe ser comprensible.
+2.2 Bucle medio: contrato de 15 a 30 minutos
+Se selecciona un encargo, se organiza la maquinaria, se desplaza al lugar, se cumple una secuencia de trabajos, se
+transporta el material y se entrega. El jugador recibe ingresos, calificación, costes y desbloqueos. Los contratos
+iniciales deben tener pocas decisiones para enseñar las mecánicas.
+2.3 Bucle largo: crecimiento de empresa
+Se amplía la flota, se contratan operadores, se planifica el mantenimiento, se aceptan obras concurrentes y se
+adquieren terrenos. La progresión desbloquea nuevas capacidades y no solo máquinas más caras. Los trabajos de
+mayor tamaño requieren mejor planificación, no únicamente más tiempo de juego.
+3. Misión inicial completamente especificada
+Misión CWS-001: Preparación de una parcela. Escenario de referencia: área de trabajo de unos 150 × 150 m;
+medición objetivo propuesta: retirar y entregar 40 m³ de tierra en una zona designada. Las cifras son parámetros
+de diseño ajustables durante el testeo.
+Paso Acción jugable Respuesta del sistema Criterio de éxito
+1 Aceptar encargo Mostrar parcela, volumen y
+recompensa Contrato activo registrado
+2 Entrar y arrancar excavadora Cambiar controles y audio del
+motor Cabina y controles operativos
+3 Excavar Retirar material del terreno Volumen real decrece en zona
+válida
+4 Llenar camión Transferir carga al volquete Masa/volumen registrado sin
+
+-- 4 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 5
+Paso Acción jugable Respuesta del sistema Criterio de éxito
+duplicación
+5 Transportar Conducir hasta
+vertedero/stockpile
+Vehículo transporta volumen
+asignado
+6 Descargar Vaciar carga en área válida Se acredita volumen
+entregado
+7 Finalizar Evaluar cantidad, tiempo y
+costes Pago y progreso persistidos
+Condiciones de fallo o recuperación: abandonar la máquina no cancela el contrato; si vuelca un vehículo, existe
+recuperación controlada con coste; si cae tierra fuera del camión, no se contabiliza como entrega; salir y volver a
+entrar conserva el estado. La misión jamás puede quedar en un estado imposible de completar sin ofrecer reinicio
+o recuperación.
+4. Sistemas funcionales y prioridades
+ID Subsistema Prioridad Primera versión
+SYS-01 Movimiento, cámaras y acceso
+a vehículos P0 Vertical slice
+SYS-02 Excavadora: pluma, brazo,
+cuchara y giro P0 Vertical slice
+SYS-03 Camión volquete y descarga P0 Vertical slice
+SYS-04 Terreno deformable y
+volumen persistente P0 Prueba técnica + slice
+SYS-05 Transferencia de carga y
+conservacion de volumen P0 Vertical slice
+SYS-06 Contratos y guardado P0 Vertical slice
+SYS-07 Sonido, VFX y cabina P1 Pulido
+SYS-08 Clima y distintos tipos de
+suelo P1 Alpha
+SYS-09 Construcción por etapas P1 Alpha/Beta
+SYS-10 Economía, flota y talleres P1 Alpha/Beta
+SYS-11 Ciudad, GPS y tráfico P2 Beta
+SYS-12 Trabajadores IA y varios
+proyectos P2 Beta
+SYS-13 Cooperativo P3 Posterior / evaluación
+4.1 Reglas de diseño para cualquier nueva funcionalidad
+ Debe describirse qué decisión toma el jugador y qué feedback recibe.
+
+-- 5 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 6
+ Debe existir una prueba objetiva de que funciona, no solo una captura bonita.
+ Debe indicarse qué datos guarda, cómo falla y cómo se recupera.
+ No se añade al MVP si no aumenta la calidad del bucle excavar → cargar → transportar → entregar.
+PARTE II · DISEÑO DE SISTEMAS
+5. Vehículos y maquinaria
+5.1 Flota mínima y orden de incorporación
+1. Excavadora hidráulica de cadenas, clase aproximada 20-25 t: protagonista del primer prototipo.
+2. Camión volquete 6×4: carga, transporte y descarga de material.
+3. Pala cargadora: acopios y movimiento de grandes cantidades.
+4. Bulldozer y rodillo: extendido, nivelación y compactación.
+5. Hormigonera y bomba: fases de cimentación y estructura.
+6. Grúas, manipuladores telescópicos, retroexcavadora, motoniveladora y asfaltadora: operaciones avanzadas.
+5.2 Excavadora: acciones obligatorias
+La pluma, el brazo, la cuchara y el giro de la torreta tienen controles independientes. Las orugas permiten avance,
+retroceso y contrarrotación. Los cilindros siguen geométricamente sus puntos de anclaje; el motor y la hidráulica
+afectan al ritmo de las maniobras. Se propone medir tiempo de ciclo, volumen medio por cuchara, radio de acción,
+estabilidad, precisión y sensación de peso.
+No confundir: mover un brazo mediante rotaciones de Blueprint proporciona una primera aproximación visual,
+pero no constituye por sí mismo un sistema físico de excavación. El contacto cuchara-suelo, la capacidad de carga
+y la transferencia de material se implementan como lógica independiente.
+5.3 Camión volquete: acciones obligatorias
+Conducir, frenar, girar, activar freno de estacionamiento, recibir carga, mostrar llenado, variar peso aparente y
+bascular la caja. La descarga debe producir transferencia de volumen al terreno de destino. Se deben manejar
+casos límite: sobrecarga, descarga parcial, camión mal colocado, colisión de caja con obstáculos y pérdida de
+conexión con el terreno.
+5.4 Parámetros configurables y datos
+Cada vehículo tendrá una ficha de datos editable: masa de referencia, potencia aproximada, velocidad máxima,
+combustible, capacidad de carga, límites de articulaciones, aceleraciones, fuerzas visuales, puntos de entrada,
+cámaras, costes por hora, animaciones y sonidos. Los valores iniciales se calibran mediante prueba, no se
+presentan como especificaciones exactas de marcas reales.
+6. Terreno deformable: la decisión más crítica
+6.1 Qué debe lograr el sistema
+ Modificar el terreno en tiempo real donde la cuchara entra en contacto.
+ Mantener una representación espacial del material: volumen retirado, material en cuchara, volumen en camión
+y depósito.
+ Actualizar colisiones sin bloqueos significativos.
+
+-- 6 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 7
+ Guardar y reconstruir cambios al cargar la partida.
+ Soportar materiales con propiedades diferentes y una representación visual creíble.
+ Respetar límites de rendimiento y no modificar el mapa completo por cada acción.
+6.2 Tres alternativas técnicas
+Enfoque Ventaja Limitación principal Uso recomendado
+Heightfield / grid de alturas Sencillo, compacto y rápido en
+excavación vertical
+No admite túneles, voladizos
+ni paredes arbitrarias Prueba de concepto / MVP
+Vóxeles / SDF Excavaciones volumétricas,
+cuevas y geometría libre
+Memoria, malla, colisiones y
+streaming complejos
+Investigación para versión
+avanzada
+Mallas dinámicas / booleanas Control geométrico local Robustez de topología y coste
+de recomputar colisiones
+Casos localizados /
+experimentación
+Decisión propuesta: comenzar con un terreno editable por celdas y una capa de volumen conservado, y mantener
+una interfaz abstracta (ITerrainExcavationBackend) para migrar, si las pruebas lo justifican, a un backend
+volumétrico. No comprometer de inicio un motor de vóxeles propio para toda la ciudad.
+6.3 Modelo de volumen y estados
+Para cada operación: V_extraído = V_cuchara + V_derrame + V_acopio + pérdida_numerica. La pérdida
+numérica debe mantenerse dentro de una tolerancia definida. Una carga no aparece de la nada. La medición se
+realiza en unidades consistentes; la conversión entre masa y volumen necesita densidad por material.
+Flujo de una operación: detectar contacto → evaluar profundidad y velocidad → calcular volumen admisible →
+descontarlo del terreno → acreditar carga a la cuchara → emitir feedback → actualizar colisión en región afectada
+→ persistir cambio incremental.
+6.4 Prueba de concepto que desbloquea el proyecto
+Construir una parcela de test con rejilla editable; retirar diez cucharadas idénticas; comprobar que el volumen total
+coincide con la suma de material transferido; guardar; salir; volver a entrar; recorrer las celdas modificadas con una
+colisión estable. Repetir el test con 100 y 1.000 operaciones, registrando tiempos de actualización y consumo de
+memoria. El equipo debe elegir el backend por mediciones, no por vídeos comerciales.
+6.5 Riesgos y estrategias de contingencia
+Si los recálculos de colisión son demasiado caros, reducir la zona activa, agrupar cambios y actualizar por lotes. Si la
+deformación visual no casa con la física, establecer pruebas de divergencia y una única fuente de verdad de
+geometría. Si no es viable un terreno volumétrico completo, la versión inicial podrá limitar excavaciones a una
+superficie sin túneles; debe explicarse al jugador con diseño coherente.
+7. Construcción de edificios e infraestructuras
+7.1 Obras previstas
+ Viviendas y edificios residenciales; naves, comercios y equipamientos públicos.
+ Carreteras, explanaciones, aparcamientos, puentes y, en fases avanzadas, túneles.
+ Obras de gran escala como hospitales o estadios, solamente tras demostrar que la construcción modular
+funciona.
+
+-- 7 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 8
+7.2 Pipeline de una obra
+Preparación y replanteo → excavación → cimentación → estructura → cerramientos → instalaciones → cubierta
+→ acabados → inspección → entrega. Cada fase tiene materiales, maquinaria, operaciones, costes y criterios de
+aceptación. Las estructuras deben aparecer y cambiar en el mundo cuando el trabajo correspondiente está
+completado.
+7.3 Diseño técnico de tareas
+Una obra se representa como un grafo de tareas con dependencias. Por ejemplo, no se autoriza un vertido de
+hormigón sin encofrado y armaduras colocadas; no se montan fachadas sin soportes. Cada tarea posee estado
+(bloqueada, disponible, en curso, validada, fallida), insumos, operador, condiciones y regla de éxito. Un
+sistema de eventos actualiza la obra al completar una tarea.
+8. Empresa, contratos y economía
+El jugador administra capital, ingresos por contrato, gastos operativos, alquileres, compras, combustible,
+mantenimiento, personal y penalizaciones. La progresión debe evitar tanto el enriquecimiento automático como el
+bloqueo sin salida: se propone reservar contratos cortos y alquiler accesible para recuperar liquidez.
+Variable Fórmula de diseño Uso en el juego
+Beneficio operativo Ingresos - combustible - alquiler -
+salarios - reparación - materiales Decisiones empresariales
+Coste horario de máquina Alquiler/depreciación + combustible +
+mantenimiento Elegir flota adecuada
+Riesgo de plazo Retraso real vs fecha objetivo, con
+tolerancia Incentivar planificación
+Calidad de entrega Volumen correcto + daños + seguridad
+de operación Reputación y recompensas
+Los valores económicos serán datos de balance y no equivalencias económicas reales obligatorias. Se registran
+métricas de tiempo medio por contrato, abandono, errores frecuentes, margen y dificultad percibida para ajustar la
+experiencia.
+9. Clima, desgaste, inteligencia artificial y sonido
+Clima: luz y ciclo horario desde etapas iniciales; lluvia, barro, viento, niebla y nieve solo cuando afecten de manera
+verificable a tracción, visibilidad o operaciones. Desgaste: combustible y averías simples antes de desgaste
+detallado de cada pieza. IA: primero tráfico y trabajadores decorativos seguros; después operadores con
+navegación, planificación y máquina asignada. Sonido: capas de motor y bomba hidráulica ligadas a RPM/carga;
+impactos, caída de material, alarmas y ambiente espacial.
+Multijugador: mantener identificadores de objetos y estados serializables para no cerrar opciones, pero no
+implementar sincronización de terreno deformable y maquinaria en el MVP. Replicar terreno, cargas y
+articulaciones es un proyecto técnico propio que requiere diseño autoritativo y pruebas de latencia.
+
+-- 8 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 9
+PARTE III · ARQUITECTURA Y PRODUCCIÓN TÉCNICA
+10. Pila tecnológica recomendada
+Componente Propuesta Precaución
+Motor Unreal Engine 5.x, versión fijada por
+proyecto
+No actualizar durante un hito sin
+pruebas de regresión
+Lógica crítica C++ Evitar ciclos de dependencias y lógica
+de juego en Tick indiscriminado
+Integración y prototipos Blueprints Interfaces claras y responsabilidades
+limitadas
+Entrada Enhanced Input Perfiles separados para personaje,
+excavadora y camión
+Física Chaos + sistemas propios de
+maquinaria
+Chaos Vehicles se orienta a vehículos
+de ruedas; cadenas requieren diseño
+adicional
+Mundo abierto World Partition en fases posteriores No introducirlo en el primer mapa si
+retrasa pruebas
+Render Lumen, Nanite, Virtual Shadow Maps,
+TSR Perfilado por clase de hardware
+VFX / sonido Niagara y MetaSounds Escalar por calidad y distancia
+Datos Data Assets / Data Tables Configuración sin recompilar para
+equilibrado
+Guardado SaveGame y persistencia incremental Versionado del formato y pruebas de
+corrupción
+Código Git + Git LFS donde proceda Evitar subir builds y cachés pesadas
+10.1 Principios de arquitectura
+Una sola fuente de verdad: el volumen de material y los estados de misión se validan en un servicio de dominio; la
+interfaz solo muestra datos. Separación visual/lógica: una animación no decide que hay tierra si la simulación no lo
+confirma. Comunicación mediante interfaces y eventos: vehículos y misiones desconocen detalles internos de
+otros subsistemas. Configuración mediante datos: modificar capacidad de cuchara o tasa de combustible no
+requiere tocar código.
+
+-- 9 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 10
+10.2 Diagrama de componentes
+Figura 2 · Arquitectura por responsabilidades; las flechas no representan llamadas directas entre clases.
+10.3 Organización propuesta del código
+ConstructionWorldSimulator/
+Config/
+Content/
+CWS/
+Core/Characters/
+Vehicles/Excavator_25T/
+Vehicles/DumpTruck_6x4/
+Terrain/
+Materials/
+Missions/
+UI/
+Audio/
+VFX/
+Environments/TestSite/
+Data/
+Source/ConstructionWorldSimulator/
+Core/
+Interaction/
+Vehicles/
+Excavation/
+Logistics/
+Contracts/
+Economy/
+SaveSystem/
+Plugins/ # solo dependencias evaluadas
+Docs/
+ADR/ # decisiones arquitectónicas
+GDD/ # diseño de juego
+TDD/ # diseño técnico
+Tests/
+Scripts/
+.gitignore
+.gitattributes
+
+-- 10 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 11
+Convenciones: BP_ Blueprint, DA_ Data Asset, DT_ Data Table, MI_ material instance, SM_ static mesh, SK_ skeletal
+mesh, WBP_ widgets, SFX_ audio, NS_ Niagara. Una carpeta ThirdParty separa contenido externo con su licencia y
+origen. Las modificaciones de una dependencia externa se documentan y versionan de forma controlada.
+10.4 Interfaces principales
+Interface / servicio Responsabilidad Ejemplos
+IInteractable Acceso y acciones genéricas Entrar, salir, usar
+IVehicleControl Entrada de conducción/maquinaria Acelerar, articular
+IExcavationBackend Deformar terreno y medir extracción TryDig, Deposit, GetSurface
+IMaterialContainer Control de carga y transferencia Cuchara, volquete, acopio
+ContractSubsystem Reglas y estados de misión Validar volumen entregado
+SaveSubsystem Guardar mundo, vehículos y contratos Delta de celdas + estado
+TelemetrySubsystem Métricas y trazas de rendimiento Tiempo colisión, FPS, eventos
+10.5 Estrategia de guardado
+Persistir a) versión de partida; b) contrato y economía; c) posición y estado de vehículos; d) material en recipientes;
+e) deltas del terreno por celdas con identificador estable. Implementar guardado atómico (archivo temporal,
+verificación y sustitución), backups mínimos, migraciones de esquema y test de carga tras salir de forma
+inesperada. No almacenar cada triángulo modificado si existe una representación de cambios mucho más
+compacta.
+11. Ingeniería de la excavadora de cadenas
+11.1 Jerarquía de componentes 3D
+Excavator_25T
+Undercarriage
+Track_Left / Track_Right
+Sprockets / Rollers
+Slewing_Upper
+Cabin / Door / Seat / Controls
+Counterweight / Engine_Covers
+Boom
+Boom_Cylinders
+Stick
+Stick_Cylinder
+Bucket_Linkage
+Bucket
+Bucket_Cylinder
+11.2 Pivotes y dependencias mecánicas
+Los pivotes deben situarse en el eje físico de rotación, en escala real, con las articulaciones padre-hijo correctas y
+una orientación consistente. La torreta gira respecto al chasis; la pluma respecto a la torreta; el brazo respecto a la
+pluma; la cuchara respecto al brazo. Las varillas hidráulicas se alinean entre puntos de anclaje; una animación de
+cilindro no debe cambiar la cinemática de referencia.
+
+-- 11 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 12
+11.3 Estrategia de rig y control
+Usar un esqueleto mecánico simple o componentes independientes con constraints, según la calidad del asset.
+Para el prototipo, movimiento determinista por ángulos limitados y visualización de cilindros; después introducir
+respuesta a carga y restricciones de estabilidad. No usar un motor genérico de ruedas como sustituto de orugas:
+crear un controlador de cadenas con velocidades izquierda/derecha y una aproximación de contacto/agarre.
+11.4 Controles propuestos
+Contexto Entrada propuesta Acción
+Personaje WASD / ratón Caminar y orientar cámara
+Interacción E Entrar, salir, activar
+Excavadora Ejes configurables Pluma, brazo, cuchara y giro
+Orugas Dos entradas independientes Avance/giro con cadenas
+Camión WASD / mando Acelerar, frenar, dirigir
+Volquete Acción dedicada Levantar/bajar caja
+Cámara C / rueda Ciclar vistas y zoom
+El esquema final debe ser configurable y accesible; los controles exactos son una propuesta que se validará con
+pruebas de usuarios, no una obligación cerrada.
+11.5 Calibración física y visual
+Probar repetidamente: radio de giro en parado, velocidad de movimiento del brazo, volumen por cuchara, caída de
+tierra, sensibilidad de mando, contacto de pala y estabilidad con carga. Registrar vídeos comparables, telemetría y
+opinión de jugadores. Un modelo de 1 millón de polígonos no compensa un pivote mal colocado o una respuesta
+de cuchara inconsistente.
+12. Plan gráfico fotorrealista y rendimiento
+12.1 Dirección visual
+Construcciones contemporáneas y reconocibles, maquinaria amarilla industrial sin marcas de terceros, entornos
+realistas, suciedad progresiva y materiales físicamente plausibles. La calidad se construye a partir de proporciones
+correctas, buenas texturas, iluminación coherente y comportamientos convincentes; no depende únicamente de
+activar todos los efectos al máximo.
+12.2 Pipeline de materiales y escenarios
+ Materiales PBR: base color, roughness, metallic, normal y mapas adicionales cuando aporten valor.
+ Texturas: resolución ajustada por visibilidad y tamaño en pantalla, evitando 4K en cada objeto.
+ Variantes: tierra seca/húmeda, óxido, pintura, barro, acero, cristal y hormigón.
+ Geometría: Nanite cuando sea compatible y rentable; colisiones simplificadas separadas de la malla visible.
+ Iluminación: ciclo diurno calibrado; Lumen se valida en varias GPUs.
+ VFX: polvo de excavación, partículas de carga, marcas de huella, lluvia y humo con presupuestos de emisión.
+ Audio: mezcla interior/exterior, carga de motor y señales de seguridad.
+
+-- 12 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 13
+12.3 Objetivos de rendimiento propuestos
+Perfil de prueba Meta interna inicial Condición
+1080p Medio/Alto 60 FPS sostenidos en PC de referencia Hardware por definir, sin garantía
+1440p Alto 60 FPS como objetivo de optimización Requiere GPU adecuada y escalado
+Ultra/Cinemático Priorizar fidelidad Puede sacrificar FPS
+Interacción Sin pausas perceptibles al excavar Medir tiempo pico y percentiles
+Guardado No bloquear una maniobra Operación diferida y consistente
+Presupuesto orientativo por fotograma: 60 FPS equivale a 16,7 ms. No gastar todo en render: separar CPU de
+juego, física, colisiones, streaming, GPU y margen de estabilidad. Registrar FPS 1% low, tiempos de frame,
+memoria, cargas y casos de estrés; no basarse solo en FPS medio.
+13. Sistema de trabajo y control de versiones
+13.1 Ramas y cambios
+Rama main siempre compilable; ramas feature/<id>-descripcion breves; pull request obligatorio para cambios
+de riesgo; etiquetas para hitos. Commits pequeños y descriptivos. Git LFS para binarios grandes si el flujo y
+capacidad lo justifican. Añadir README, CHANGELOG, instrucciones de instalación, ADR y registro de assets con
+licencia.
+13.2 Integración y calidad
+Pipeline mínimo: comprobar formato/código cuando haya herramienta disponible, validar compilación
+automatizada en un runner con Unreal instalado, ejecutar tests unitarios/funcionales y empaquetar una build de
+evaluación según recursos disponibles. No publicar artefactos si fallan pruebas de carga de partida o de la misión
+CWS-001.
+13.3 Decisiones arquitectónicas obligatorias
+Registrar en archivos ADR-001 a ADR-00N: versión de Unreal, estrategia de terreno, aproximación de cadenas, rig
+de excavadora, formato de guardado, almacenamiento de assets y requisitos de hardware. Cada ADR explica
+contexto, alternativas, decisión, consecuencias y fecha.
+PARTE IV · RECURSOS, MODELOS 3D E IA
+14. Modelos 3D: lista de compra inicial
+Regla principal: descargar primero los assets que desbloquean una tarea; no construir una biblioteca de cientos de
+modelos antes de tener juego. Los portales siguientes son fuentes para buscar, no una afirmación de que exista
+hoy un asset concreto gratuito con el rig deseado.
+Asset Características obligatorias Prioridad Estado
+Excavadora de cadenas Pluma, brazo, cuchara, torreta,
+orugas y pivotes separados; P0 Buscar y validar
+
+-- 13 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 14
+Asset Características obligatorias Prioridad Estado
+cabina
+Camión volquete 6×4 Ruedas, cabina y caja
+basculante independientes P0 Buscar y validar
+Operario con casco
+Esqueleto compatible,
+animaciones de
+caminar/entrar
+P0 Buscar y validar
+Material suelo Tierra, barro, arena, grava y
+asfalto PBR P0 Buscar y validar
+Pack de obra Vallas, conos, señalización,
+caseta, palés P1 Buscar y validar
+Cantera/almacén Elementos modulares para
+área de descarga P1 Buscar y validar
+Pala cargadora Pala articulada, ruedas, cabina P2 Posterior
+Bulldozer, rodillo,
+hormigonera, grúas
+Componentes preparados
+para rig P2/P3 Posterior
+14.1 Fuentes gratuitas y legales
+ Fab (fab.com): buscar packs de entorno, props y modelos para Unreal; comprobar si cada ficha utiliza licencia
+estándar, CC o condiciones diferentes.
+ Sketchfab (sketchfab.com): modelos descargables, maquinaria y vehículos; el permiso comercial depende de la
+licencia de cada modelo.
+ CGTrader (cgtrader.com/free-3d-models): modelos gratuitos y de pago; comprobar polígonos, formatos y
+licencia.
+ Poly Haven (polyhaven.com): texturas, HDRI y modelos con licencia CC0; muy útil para materiales realistas.
+ Blender (blender.org): limpiar mallas, separar piezas, mover pivotes, crear UV y preparar exportación.
+14.2 Checklist de aceptación de un modelo
+1. ¿El formato es importable (FBX, glTF/GLB o nativo compatible)?
+2. ¿La licencia permite incluirlo en un videojuego comercial y redistribuirlo solo dentro del producto?
+3. ¿Tiene escala y unidades verificables, topología limpia y UV correctas?
+4. ¿Las piezas mecánicas están separadas o son separables sin reconstruir todo?
+5. ¿Los pivotes coinciden con articulaciones reales y sus jerarquías son claras?
+6. ¿La cabina interior existe si habrá vista en primera persona?
+7. ¿Puede tener colisiones simplificadas, animaciones y variantes de calidad?
+8. ¿El coste de procesarlo/riggearlo es menor que crear o modificar uno alternativo?
+14.3 Política de propiedad intelectual
+No extraer modelos de videojuegos de terceros, no copiar logotipos de fabricantes sin autorización y no asumir
+que «gratis» significa uso comercial libre. Para cada asset registrar URL, autor, licencia exacta, fecha de descarga,
+cambios efectuados, obligación de atribución y factura/registro de obtención si procede. Conservar archivos de
+licencia junto al inventario del proyecto.
+
+-- 14 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 15
+15. IA gratuita para desarrollar el videojuego
+Opción Mejor uso Condición a verificar
+Google Antigravity Agente para tareas de desarrollo y
+edición de archivos Disponibilidad, plan y cuotas actuales
+GitHub Copilot Free Autocompletado, explicaciones y
+chat/agente limitado Cuotas y modelos de su plan Free
+Ollama + Cline Uso local sin facturación por petición
+con modelos locales
+RAM/VRAM, calidad y rendimiento
+real
+Blender + asistentes Preparar assets, rig y automatizar
+tareas
+La IA no garantiza pivotes mecánicos
+correctos
+ChatGPT / otros asistentes Arquitectura, prompts, diseño y
+revisión Plan y límites correspondientes
+Corrección de información temporal: Google documenta que las extensiones de Gemini Code Assist para cuentas
+individuales dejaron de admitir ese acceso el 18/06/2026, y orienta a la familia Antigravity. No asumir que un
+tutorial antiguo de Gemini Code Assist Free sigue vigente. Ningún agente debe recibir autoridad para borrar
+repositorios, comprar assets o publicar builds sin revisión humana.
+15.1 Cómo repartir el trabajo con agentes de IA
+ Humano/director técnico: decide la prioridad, acepta resultados, prueba sensaciones de juego y valida
+licencias.
+ Agente de programación: crea módulos pequeños con rutas, código, pruebas y documentación; no declara
+«funciona» sin compilación y ejecución.
+ Agente de revisión: analiza errores, riesgos de memoria y cambios no relacionados; propone correcciones
+específicas.
+ Asistente de arte: propone listas de referencia, nomenclatura y tareas de rig, pero un artista o usuario verifica
+las articulaciones.
+15.2 Plantilla de petición eficaz para IA
+Contexto: Proyecto UE5 C++/Blueprints Construction World Simulator.
+Objetivo de esta tarea: [un sistema concreto y delimitado].
+Estado actual: [archivos existentes y dependencias verificadas].
+Archivos autorizados a cambiar: [lista].
+No tocar: [sistemas fuera de alcance].
+Requisitos: [acciones y restricciones mecánicas].
+Pruebas: [criterios medibles y casos límite].
+Entrega: diff, instrucciones de compilación, pruebas realizadas y pendientes.
+Reglas: no inventar resultados, no eliminar contenido sin aprobación.
+15.3 Uso sugerido por fase
+En las primeras semanas, utilizar la IA para estructura C++, componentes y documentación; en la prueba de
+terreno, pedir experimentos aislados y tests de conservación de volumen; durante el pulido, aprovecharla para
+herramientas de pipeline, comprobaciones de assets y automatización de builds. El trabajo asistido por IA no
+elimina la necesidad de dominar el editor, el debug de C++ y el perfilador.
+
+-- 15 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 16
+PARTE V · HOJA DE RUTA EXTENDIDA
+16. Calendario general y dependencia entre hitos
+Se propone una ruta de 24 a 36 meses para un equipo pequeño con dedicación sostenida, recursos 3D y
+experiencia suficiente; es una hipótesis de planificación, no una previsión contractual. Una persona trabajando a
+tiempo parcial debería prever un plazo muy superior y, probablemente, reducir el alcance de mundo abierto y
+construcción compleja. Algunas fases se solapan, pero nunca se debe declarar superado un hito si fallan sus
+criterios de salida.
+Figura 3 · Secuencia ilustrativa de trabajo para un equipo pequeño; no es una fecha comprometida.
+Hito Ventana ilustrativa Evidencia obligatoria
+H0 · Fundaciones Semanas 1-4 Proyecto compilado, repositorio y test
+básico
+H1 · Control y máquina Semanas 5-12 Operador y máquina con articulaciones
+y cámaras
+H2 · Excavación Meses 3-6 Terreno editable, volumen y
+persistencia medidos
+H3 · Vertical slice Meses 6-9 Misión CWS-001 completada sin
+intervención manual
+H4 · Alpha funcional Meses 9-15 Contratos variados, economía básica y
+más de una máquina
+H5 · Mundo y obras Meses 12-24 Región conectada y construcción por
+etapas
+H6 · Beta de contenido Meses 18-30 IA y contenido jugable con QA
+sistemática
+H7 · Candidato a lanzamiento Meses 24-36 Métricas, estabilidad, accesibilidad y
+empaquetado
+
+-- 16 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 17
+16.1 Camino crítico
+Versión del motor → proyecto reproducible → vehículo interactivo → mecanismo de cuchara → terreno
+deformable → transferencia de material → persistencia → contrato completo → optimización del ciclo de juego. La
+ciudad, las grúas y la gestión empresarial dependen de haber validado este camino. La investigación de terreno
+comienza antes de terminar la excavadora para descubrir riesgos cuanto antes.
+17. Fase 0 — Preproducción y fundamentos
+Ventana de referencia: semanas 1 a 4. Objetivo: evitar que los siguientes meses se pierdan por una mala
+estructura, dependencias o requisitos vagos.
+Paquetes de trabajo
+ F0.01 — Requisitos cerrados: documento de una página sobre la experiencia básica, controles, plataformas y
+límites de la demo.
+ F0.02 — Auditoría de hardware: registrar SO, CPU, GPU, memoria, almacenamiento, controladores y tiempos
+de compilación. Determinar equipo principal de desarrollo.
+ F0.03 — Herramientas: instalar Unreal, IDE/C++, Blender, Git y gestor de tareas; confirmar licencias y
+versiones concretas.
+ F0.04 — Repositorio: crear estructura, .gitignore, política de LFS, README, ramas, plantilla de incidencias y
+ADR iniciales.
+ F0.05 — Proyecto técnico: crear proyecto C++, definir GameMode, Enhanced Input, mapa de pruebas y
+empaquetado mínimo.
+ F0.06 — Datos y observabilidad: nombres de logging, métrica de FPS y tiempo de frame, convenciones de
+unidades y primera prueba automatizada.
+ F0.07 — Inventario de assets: seleccionar candidato de excavadora/camión y documentar licencias sin
+comprar materiales todavía.
+Entregables
+CWS-Project.uproject, repositorio inicial, README, lista de riesgos, documentación de entorno, build base y
+decisión documentada sobre el primer enfoque de terreno.
+Puerta de salida H0
+ El proyecto abre y compila en un entorno definido.
+ Una persona distinta puede seguir el README y ejecutar la escena de prueba con los requisitos indicados.
+ Se puede crear una build para la plataforma seleccionada o queda documentado el bloqueo exacto con su
+responsable.
+ Se han registrado y priorizado los cinco principales riesgos técnicos.
+Riesgo a vigilar: elegir un hardware que no permita trabajar con el perfil gráfico buscado. Plan B: utilizar una
+calidad gráfica de desarrollo reducida y validar el perfil cinematográfico en una máquina de referencia separada.
+18. Fase 1 — Personaje, cámara e interacción
+Ventana: semanas 5 a 8. Objetivo: probar la sensación básica de estar en una obra y acceder a maquinaria.
+
+-- 17 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 18
+Paquetes de trabajo
+ F1.01: personaje tercera persona con colisiones, salto opcional y movimiento consistente.
+ F1.02: cámara primera/tercera persona, límites, sensibilidad y zoom.
+ F1.03: sistema IInteractable con mensaje de proximidad, prioridad y distancia máxima.
+ F1.04: interacción de entrar/salir de cabina con puntos de acceso y estados seguros.
+ F1.05: cambio de mapeos de entrada entre personaje y máquina.
+ F1.06: HUD discreto con modo de control, instrucciones y prompts contextualizados.
+ F1.07: test con teclado/ratón y mando, incluido cambio repetido de foco y cámaras.
+Puerta de salida H1-A
+En una build, el jugador aparece, se mueve, puede seleccionar una cabina, entrar y salir diez veces seguidas sin
+duplicar personajes ni perder controles. La cámara no atraviesa objetos grandes y los avisos de interacción
+responden correctamente a distancia.
+Dependencia: F0. Riesgo: mezclar toda la entrada del personaje y la máquina en una sola clase. Plan B: separar
+controladores y activar input mappings por contexto.
+19. Fase 2 — Excavadora y camión operativos
+Ventana: semanas 9 a 18, con trabajo paralelo selectivo. Objetivo: lograr el mejor control posible de dos máquinas
+sin depender aún de una ciudad.
+Paquetes de trabajo: excavadora
+ F2.01: adquirir/crear asset con geometría separada; preparar pivotes y orientación.
+ F2.02: torreta con rotación limitada por control o giro continuo según diseño.
+ F2.03: pluma, brazo y cuchara con límites, velocidades configurables y combinación simultánea de ejes.
+ F2.04: cilindros hidráulicos que siguen anclajes; animaciones y colisiones robustas.
+ F2.05: cadenas izquierda/derecha, giro estacionario, velocidades y agarre sobre terreno simple.
+ F2.06: cámara interior, exterior y cámara enfocada a la cuchara.
+ F2.07: arranque y parada, audio de motor e hidráulica, estado de combustible simplificado.
+ F2.08: pruebas de estabilidad en pendiente, con cuchara elevada y ante colisiones.
+Paquetes de trabajo: camión
+ F2.09: preparar rig de camión con ruedas/caja y colisiones.
+ F2.10: movimiento y control del volquete sobre físicas de ruedas.
+ F2.11: mecanismo de elevación y retorno de la caja con límites y seguridad.
+ F2.12: sistema de carga abstracta, indicador y variación básica de peso.
+ F2.13: maniobra de entrega a una zona de descarga con evento validado.
+Puerta de salida H1-B
+Completar un circuito con camión y conducir una excavadora a una posición predefinida. La cuchara recorre sus
+grados de libertad sin geometría invertida; las cadenas giran de forma consistente; el camión eleva y baja la caja. Se
+aporta vídeo de 2-3 minutos, prueba de controles y listado de defectos conocidos.
+Dependencias: F1 y disponibilidad de modelos articulables. Riesgo: asset visualmente bonito pero imposible de
+riggear. Plan B: prototipo de maquinaria compuesto de primitivas con pivotes correctos mientras se prepara el
+asset definitivo.
+
+-- 18 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 19
+20. Fase 3 — Investigación, desarrollo y validación del terreno
+Ventana: semanas 13 a 26. Objetivo: resolver el sistema que condiciona todo el simulador.
+Subfase A: evaluación y benchmark
+ F3.01: construir escena comparativa sin arte pesado.
+ F3.02: prototipo heightfield con cambios por celdas, colisión y volumen.
+ F3.03: evaluar alternativa SDF/voxel y/o malla dinámica mediante pruebas aisladas.
+ F3.04: registrar resultados de latencia, memoria, fragmentación, guardado y estabilidad.
+ F3.05: redactar ADR justificando backend inicial y plan de migración.
+Subfase B: excavación jugable
+ F3.06: contacto cuchara-terreno con área activa y límites de tasa de extracción.
+ F3.07: contabilizar el material extraído por tipo, densidad y estado.
+ F3.08: llenar/vaciar cuchara y visualizar montones o acopios.
+ F3.09: actualizar colisiones por lotes y minimizar picos de frame.
+ F3.10: transferencia a volquete con límites de capacidad y derrames.
+ F3.11: permitir depósito en destino y conservar volumen dentro de tolerancia.
+ F3.12: guardar/cargar deltas, restaurar geometría y verificar recuperación.
+Experimentos mínimos
+Caso Operaciones Qué se mide
+T-001 Diez cucharadas uniformes Exactitud de volumen, aspecto y
+colisión
+T-002 Cien cucharadas sobre la misma zona Coste incremental y estabilidad
+T-003 Mil operaciones distribuidas Memoria, tiempos máximos y tamaño
+de guardado
+T-004 Descargar y volver a cargar Igualdad geométrica y de inventario
+T-005 Cortar durante guardado Integridad de fichero y recuperación
+T-006 Cambiar material de suelo Comportamiento de densidad y
+resistencia
+Puerta de salida H2
+Se puede extraer, transportar y depositar tierra manteniendo consistencia de volumen dentro de la tolerancia
+documentada. La misma secuencia de pruebas es repetible. Los picos de latencia y memoria están registrados y se
+han definido límites de uso. No se autoriza crear un gran mundo hasta que esta fase no tenga una solución
+aceptable.
+Riesgo máximo del proyecto: arquitectura de terreno inviable para el rendimiento deseado. Plan B: limitar la
+deformación a áreas de obra y sustituir el resto del mundo por terreno estático para poder mantener escala y
+fidelidad visual.
+
+-- 19 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 20
+21. Fase 4 — Contratos, UX y primera demo jugable
+Ventana: semanas 25 a 32. Objetivo: cerrar el bucle completo con una misión entretenida, estable y repetible.
+Paquetes de trabajo
+ F4.01: sistema de contratos con identificadores, estados y reglas de transición.
+ F4.02: marcador de parcela, límites de trabajo y puntos de entrega.
+ F4.03: HUD de misión: volumen retirado, carga de camión, ruta y porcentaje entregado.
+ F4.04: tutor paso a paso con ayudas opcionales y mensajes de error comprensibles.
+ F4.05: recompensa y costes básicos por completar CWS-001.
+ F4.06: guardado en momentos seguros y restauración integral de misión.
+ F4.07: menú principal, pausa, audio/controles/gráficos y reinicio de misión.
+ F4.08: telemetría del recorrido; testeo con usuarios nuevos y cambios de dificultad.
+Puerta de salida H3 · vertical slice
+Una persona que no ha desarrollado el juego puede completar el contrato sin ayuda externa tras el tutorial. Se
+registran al menos cinco sesiones de prueba y los errores que provocan abandono. Se obtiene una build instalable,
+una grabación sin cortes de la misión y una lista de problemas priorizados. El juego recupera el contrato y el
+terreno después de cerrar y abrir.
+Riesgo: construir interfaces complejas antes de comprobar si el ciclo es divertido. Plan B: priorizar claridad del
+HUD y controles antes que diseño visual final.
+22. Fase 5 — Pulido gráfico, ambiental y sonoro
+Ventana: meses 7 a 11. Objetivo: transformar el prototipo funcional en una escena visualmente convincente sin
+romper el rendimiento.
+Paquetes de trabajo
+ F5.01: sustituir modelos provisionales por assets de calidad y rig verificado.
+ F5.02: iluminación de día y tarde, validación de exposición interior y exterior.
+ F5.03: materiales PBR de tierra, barro, acero y pintura con variaciones de suciedad.
+ F5.04: polvo de excavación, tierra desprendida y marcas de orugas con perfiles de calidad.
+ F5.05: sonido de motor e hidráulica según carga; audio espacial cabina/exterior.
+ F5.06: cabina interior detallada e instrumentación con información real.
+ F5.07: lluvia y humedad visual prototipo; dejar nieve/tormentas avanzadas fuera si no afectan al juego.
+ F5.08: LOD, streaming, colisiones simplificadas, perfilado GPU y presupuesto de texturas.
+Puerta de salida H4-A
+El escenario mantiene la interacción sin saltos grandes de frame en el hardware de referencia. Existe una
+comparación documentada Antes/Después, una escena con calidad gráfica alta y un perfil más económico que
+conserve legibilidad. Los materiales responden correctamente a luz, sombra y humedad.
+Riesgo: usar Nanite/Lumen como excusa para no optimizar. Plan B: presupuestos explícitos de materiales, draw
+calls, sombras, partículas y memoria.
+
+-- 20 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 21
+23. Fase 6 — Mundo abierto y logística
+Ventana: meses 9 a 15. Objetivo: conectar varias zonas de trabajo sin perder la calidad del núcleo.
+Paquetes de trabajo
+ F6.01: mapa base regional modular y topología de carreteras.
+ F6.02: World Partition, Data Layers y streaming según necesidad real.
+ F6.03: cantera, zona industrial, garaje y depósito de maquinaria.
+ F6.04: navegación GPS y rutas de transporte.
+ F6.05: tráfico AI básico, señales y semáforos en corredores relevantes.
+ F6.06: spawn persistente de vehículos y maquinaria en diferentes puntos.
+ F6.07: contratos con traslado entre obras, carga y descarga en varios lugares.
+ F6.08: medición de microparadas durante streaming, viaje y regreso a parcela excavada.
+Puerta de salida H4-B
+Realizar un contrato que combine desplazamiento, recogida y entrega en dos zonas distintas, con streaming
+estable, ruta coherente y persistencia. No deben perderse máquinas ni cambios del terreno al viajar lejos. El mapa
+no se expande mientras los tiempos de carga sean inaceptables.
+24. Fase 7 — Sistema de construcción y negocio
+Ventana: meses 12 a 22. Objetivo: pasar de mover tierra a construir estructuras y gestionar una empresa.
+Paquetes de trabajo
+ F7.01: sistema de tareas de obra por dependencias y estados verificables.
+ F7.02: cimentación: excavación, encofrado, armaduras y hormigón simplificados.
+ F7.03: colocación de estructuras modulares y avance visual por etapas.
+ F7.04: proyectos de vivienda, nave industrial y tramo de carretera, por este orden.
+ F7.05: compra, alquiler, mantenimiento y flota; costes horarios visibles.
+ F7.06: presupuestos, contratos, reputación y dificultad ajustable.
+ F7.07: almacén de materiales, abastecimiento y entregas.
+ F7.08: herramientas de autor para crear contratos y fases sin programar cada misión.
+ F7.09: balance económico basado en sesiones de prueba y no en cifras arbitrarias.
+Puerta de salida H5
+Se completa al menos una obra multietapa en la que los materiales y la maquinaria correctos son necesarios; la
+estructura aparece progresivamente; el presupuesto final refleja acciones realizadas; la empresa puede financiar el
+siguiente contrato sin dependencia de trucos ni estados ocultos.
+Riesgo: intentar simular todas las profesiones y técnicas de construcción. Plan B: diseñar tres cadenas de
+construcción profundas y claras antes de añadir decenas de variantes superficiales.
+25. Fase 8 — IA, clima y escalado del contenido
+Ventana: meses 18 a 27. Objetivo: ofrecer un mundo que trabaja mientras el jugador dirige y opera.
+
+-- 21 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 22
+Paquetes de trabajo
+ F8.01: trabajadores con roles, disponibilidad y asignación a tareas.
+ F8.02: operadores IA para operaciones acotadas y seguras (primero transporte simple).
+ F8.03: planificador de obra: dependencias, recursos, priorización y bloqueos.
+ F8.04: clima con efecto medible sobre tracción, visibilidad y duración de operaciones.
+ F8.05: desgaste y averías con reparación comprensible y costes equilibrados.
+ F8.06: contenido adicional: maquinaria, nuevos contratos y objetos de construcción.
+ F8.07: panel de planificación para obras simultáneas.
+ F8.08: pruebas de CPU, memoria y navegación con numerosos agentes.
+Puerta de salida H6-A
+El jugador puede delegar al menos una tarea repetitiva y recibir un resultado verificable. Las tareas delegadas no
+rompen el volumen de material ni permiten duplicar recursos. El rendimiento con IA activa permanece dentro del
+objetivo en escena de estrés.
+Riesgo: IA atrapada en geometría cambiante. Plan B: limitar rutas y áreas de maniobra automatizadas, usar puntos
+predefinidos y recuperar agentes bloqueados mediante una política transparente.
+26. Fase 9 — Beta, QA, lanzamiento y operaciones
+Ventana: meses 24 a 36. Objetivo: convertir una colección de sistemas en un producto consistente y publicable.
+Paquetes de trabajo
+ F9.01: congelar alcance de la versión y clasificar defectos por gravedad.
+ F9.02: regresión completa de controles, excavación, conservación, carga, contratos y guardado.
+ F9.03: pruebas prolongadas con escenarios grandes y repetición de cientos de operaciones.
+ F9.04: optimizar tiempos de carga, memoria, guardado, colisiones y frames extremos.
+ F9.05: tutorial, accesibilidad, mandos, remapeo y comunicación de errores.
+ F9.06: auditoría de licencias, marcas, assets, música y componentes de terceros.
+ F9.07: localización, página de tienda, capturas reales y documentación de requisitos.
+ F9.08: beta externa acotada, recogida de feedback, triage y corrección.
+ F9.09: build candidata, procedimiento de publicación y plan de parches.
+Puerta de salida H7
+Cero defectos bloqueantes conocidos, pruebas críticas reproducibles superadas, partidas antiguas migradas o
+tratadas correctamente, funcionamiento en configuración mínima documentada, materiales de tienda que reflejan
+el producto real y una política clara de soporte. La fecha de salida depende de estas condiciones, no del calendario
+inicial.
+26.1 Qué no debe hacerse antes de la beta
+No anunciar características no terminadas como implementadas, no comprar una gran flota de modelos si faltan
+mecánicas, no prometer multijugador, no multiplicar el tamaño del mundo para compensar falta de contenido y no
+pasar defectos graves a los usuarios como si fueran «realismo».
+
+-- 22 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 23
+27. Resumen de criterios de aceptación por hito
+Hito Prueba imprescindible Decisión si falla
+H0 Compila y se ejecuta Reparar infraestructura
+H1 Entrar, salir y manejar máquinas Corregir controles/rig
+H2 Tierra y carga conservadas, guardado
+correcto Replantear backend
+H3 Contrato completo por usuario nuevo Mejorar UX y loop
+H4 Calidad visual sin degradación excesiva Optimizar antes de ampliar
+H5 Construcción multietapa y economía
+estable Reducir variedad
+H6 IA aporta valor y no corrompe el
+estado Limitar automatización
+H7 QA de rendimiento, estabilidad y
+licencias Aplazar publicación
+PARTE VI · PLAN OPERATIVO DE LAS PRIMERAS 16 SEMANAS
+28. Método de ejecución semanal
+Cada semana debe terminar con cuatro elementos: una build o evidencia ejecutable, un registro de pruebas, una
+lista de riesgos actualizada y un listado de decisiones técnicas. Se recomienda reservar aproximadamente un 60 %
+del esfuerzo para implementar, 20 % para integrar y probar, 10 % para arte/documentación y 10 % para
+contingencias; son proporciones de partida que se ajustarán tras medir el trabajo real.
+28.1 Definición de terminado (Definition of Done)
+Una tarea está terminada cuando: a) existe en la rama integrada; b) compila o se abre sin errores en el entorno
+especificado; c) satisface casos de prueba positivos y al menos un caso de error; d) está documentada; e) no rompe
+un comportamiento crítico existente; f) tiene vídeo/captura/log cuando aporta evidencia; g) se ha registrado la
+deuda técnica que no bloquea el hito.
+29. Semanas 1 a 4 — Arranque técnico
+Semana 1 · Preparar el entorno
+Objetivo: abrir un proyecto nuevo y entender las limitaciones reales del equipo. Tareas: instalar versión fijada de
+UE5 y toolchain; generar proyecto C++; ejecutar escena ejemplo; registrar rendimiento y disco; crear Git.
+Entregable: compilación o apertura verificable + instrucciones reproducibles. Pruebas: reinicio del editor, ejecución
+Play-In-Editor, commit limpio. Bloqueo a resolver: incompatibilidad del entorno de compilación o hardware.
+
+-- 23 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 24
+Semana 2 · Base del gameplay
+Objetivo: personaje que se mueve de forma fiable. Tareas: Enhanced Input; personaje; cámara; colisiones;
+interacción básica por raycast o proximidad; mapa TestSite. Entregable: vídeo del personaje recorriendo parcela
+e interactuando con un objeto. Pruebas: cambios de resolución, pausa, colisiones de bordes. Criterio: 10 sesiones
+cortas sin pérdida de entrada.
+Semana 3 · Arquitectura y herramientas
+Objetivo: evitar lógica monolítica. Tareas: IInteractable, VehicleControl, eventos, registro de métricas, Data
+Assets de configuración, estructura de carpetas y ADR. Entregable: framework mínimo usado por dos objetos
+interactivos. Pruebas: añadir tercer objeto sin modificar sistema central. Criterio: bajo acoplamiento y proyecto
+compilable.
+Semana 4 · Spike de excavación y gate H0
+Objetivo: comprobar pronto si el terreno es viable. Tareas: montar grid de alturas, cambiar una región con una
+herramienta de prueba, medir volumen retirado y guardar un delta simple; preparar informe de riesgos. Entregable:
+demostración de un agujero y un test reproducible. Pruebas: 100 modificaciones pequeñas y restauración.
+Criterio: decisión provisional documentada para fase 3.
+30. Semanas 5 a 8 — Primer operador y modelo mecánico
+Semana 5 · Entrada y salida de maquinaria
+Tareas: puntos de acceso, poses del personaje, cambio de control y cámaras, estados OnFoot/InVehicle, HUD
+contextual. Entregable: entrar/salir de un vehículo de prueba. Pruebas: intento de entrar dos veces, salir en zona
+ocupada, pausa durante transición. Criterio: 20 transiciones sin duplicación ni bloqueo.
+Semana 6 · Preparar excavadora
+Tareas: evaluar assets gratuitos; elegir geometría que pueda separarse; ajustar escala; rotaciones, origen y
+jerarquía de pluma, brazo y cuchara en Blender/UE; crear colisiones básicas. Entregable: excavadora
+mecánicamente articulable, aunque aún no extraiga tierra. Pruebas: recorrer límites de ejes y comprobar
+intersecciones. Bloqueo: si el modelo no sirve, reconstruir un rig provisional con piezas simples.
+Semana 7 · Controles de excavadora
+Tareas: mapear ejes, torreta, pluma, brazo, cuchara; velocidad y aceleración por parámetro; cámara
+cabina/exterior. Entregable: operador ejecuta una secuencia de excavación en vacío. Pruebas: entradas
+simultáneas y límites extremos. Criterio: articulaciones suaves y previsibles, sin sobresaltos.
+Semana 8 · Cilindros, orugas y revisión
+Tareas: sincronizar cilindros y puntos de anclaje; controlador de dos cadenas; efectos básicos de arranque; corregir
+colisiones. Entregable: excavadora que se posiciona, gira y coloca la cuchara con precisión. Pruebas: giro en parado
+y radio de movimiento. Criterio: revisión en vídeo con lista de mejoras antes de conectar al suelo.
+
+-- 24 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 25
+31. Semanas 9 a 12 — Material y transporte
+Semana 9 · Herramienta de excavación controlada
+Tareas: integrar el contacto de cuchara con backend de terreno aislado, separar colisión mecánica de cálculo de
+material, indicar posición y volumen retirado. Entregable: excavadora realiza primera cucharada real. Pruebas:
+contacto superficial, repetición en terreno ya excavado, cuchara vacía. Criterio: ninguna extracción sin contacto
+validado.
+Semana 10 · Cuchara y conservación
+Tareas: capacidad, tipos de material, llenado, derrame y descarga en acopio; telemetría de volumen; tolerancias.
+Entregable: conjunto terreno ↔ cuchara sin duplicación. Pruebas: 10 ciclos y comparación acumulada. Criterio:
+balance dentro de tolerancia documentada.
+Semana 11 · Camión volquete
+Tareas: rig y ruedas, conducción, frenos, cámara, caja basculante, recipiente de carga. Entregable: camión realiza
+recorrido y levanta caja. Pruebas: conducción con carga ficticia, caja elevada durante movimiento y control de
+estado. Criterio: comportamiento estable y restricciones mecánicas básicas.
+Semana 12 · Transferencia a camión
+Tareas: detección de carga en caja, volumen y masa, animación de descarga, UX de llenado. Entregable:
+excavadora carga el volquete con varias cucharadas. Pruebas: sobrecarga, carga fuera de la caja, cancelar
+maniobra. Criterio: solo el material que entra correctamente en el recipiente se contabiliza.
+32. Semanas 13 a 16 — Persistencia y primer loop integrado
+Semana 13 · Persistencia del terreno
+Tareas: almacenamiento por celdas, delta compacto, versión de guardado, carga y comparación geométrica.
+Entregable: obra que conserva sus zanjas después de reiniciar el juego. Pruebas: secuencia de 100 cambios y carga
+repetida. Criterio: volumen y forma reconstruidos dentro de tolerancia.
+Semana 14 · Transporte y descarga
+Tareas: destino, zona validada, control de caja y transferencia a depósito. Entregable: cadena completa tierra →
+cuchara → camión → destino. Pruebas: descarga parcial, fuera de zona y doble descarga. Criterio: sin pagos ni
+transferencias duplicadas.
+Semana 15 · Contrato mínimo
+Tareas: estados de misión, progreso, objetivos, UI básica, recompensa y finalización; recuperar partida intermedia.
+Entregable: primera versión de CWS-001. Pruebas: finalización correcta e incompleta, reinicio, abandono. Criterio:
+contrato completa una vez y registra datos correctos.
+
+-- 25 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 26
+Semana 16 · Semana de estabilidad y revisión
+Tareas: refactorizar puntos críticos, medir picos de CPU/GPU, corregir bugs P0, grabar demo, actualizar backlog y
+riesgos. Entregable: build integrada, vídeo, checklist y plan de las próximas ocho semanas. Pruebas: ejecutar
+CWS-001 tres veces y recuperar una partida. Criterio: no existen errores que impidan completar la misión; si no se
+cumple, no ampliar alcance.
+33. Tablero priorizado del MVP
+ID Épica / tarea Depende de Evidencia Prioridad
+MVP-01 Proyecto C++
+reproducible Ninguna Build y README P0
+MVP-02 Personaje e interacción MVP-01 Entrar/salir P0
+MVP-03 Rig articulable
+excavadora MVP-01 Movimiento por ejes P0
+MVP-04 Control de orugas MVP-03 Giro y avance P0
+MVP-05 Backend terreno local MVP-01 Excavación y colisión P0
+MVP-06 Volumen en cuchara MVP-03,05 Balance medido P0
+MVP-07 Camión con caja MVP-01 Conducción y
+basculante P0
+MVP-08 Transferencia de carga MVP-06,07 Sin duplicación P0
+MVP-09 Guardado de estado MVP-05,08 Reinicio correcto P0
+MVP-10 Contrato CWS-001 MVP-02,08,09 Misión completa P0
+MVP-11 Audio y partículas MVP-03,06 Feedback claro P1
+MVP-12 Primera optimización MVP-05,10 Informe de frame P1
+33.1 Ejemplo de ficha de tarea lista para crear en GitHub
+ID: MVP-06. Título: implementar carga de tierra en la cuchara. Historia: como operador quiero ver y transportar
+material excavado para cargar el camión. Criterios: la cuchara tiene capacidad; no extrae más de la región
+disponible; la transferencia conserva volumen; el valor se restaura tras guardar. Casos límite: suelo vacío, cuchara
+llena, intento de descarga fuera de recipiente, reinicio. Evidencia: tests, vídeo y captura de logs. No incluido:
+reacción física granular de cada partícula de tierra.
+34. Primeros diez días: acciones concretas
+1. Día 1: confirmar equipo, instalar motor/IDE y crear proyecto.
+2. Día 2: compilar, ejecutar y dejar README reproducible.
+3. Día 3: preparar Git, convenciones y tablero.
+4. Día 4: crear personaje y entrada base.
+5. Día 5: montar mapa gris de pruebas de 150 × 150 m.
+6. Día 6: probar modelos de excavadora, pivotes y formato de importación.
+
+-- 26 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 27
+7. Día 7: crear componente de interacción con cabina.
+8. Día 8: construir microprototipo de grid de terreno editable.
+9. Día 9: registrar volumen y exportar métricas de prueba.
+10. Día 10: revisar riesgos, demostrar avance y decidir la siguiente iteración.
+Regla del viernes: no se cierra una semana porque se hayan creado archivos, sino porque hay una prueba jugable y
+reproducible. Si un objetivo falla, se preserva el resultado y se acota la siguiente tarea.
+PARTE VII · CONTROL DEL PROYECTO
+35. Estrategia de pruebas y validación
+35.1 Pirámide de pruebas
+Unitarias: cálculos de volumen, límites de articulaciones, transiciones de contrato, conversiones masa-volumen y
+serialización. Integración: excavación→cuchara→camión→depósito; entrar/salir y recuperación de input;
+guardar→cargar. Funcionales: misión completa en una build. Rendimiento: 100/1.000 excavaciones, zona con
+tráfico, cambios de clima, carga de mapa y descarga. Usabilidad: jugador nuevo realiza una operación sin
+explicación externa y entiende por qué una acción falla.
+35.2 Matriz de regresión crítica
+Prueba Frecuencia Resultado verificable
+Compilar y abrir proyecto Cada integración Sin errores de compilación
+Entrar y salir de excavadora Cada release interna Control/cámara se restauran
+Mover articulaciones Cada cambio de rig No atraviesan límites definidos
+Excavación y volumen Cada cambio del backend Balance dentro de tolerancia
+Llenar y vaciar camión Cada cambio de logística No se duplica material
+Guardar y recargar Cada cambio de persistencia Mundo y contrato coherentes
+CWS-001 completa Semanal desde F4 Recompensa correcta y una sola vez
+Sesión larga de stress Antes de hitos Sin bloqueos críticos ni fuga de
+memoria
+35.3 Categorías de defectos
+P0: corrupción de partidas, duplicación masiva de recursos, bloqueo de misión, crash recurrente. P1: fallos
+frecuentes de controles, errores graves de colisión, rendimiento insoportable. P2: fallos visuales, desajustes de
+sonido, incoherencias menores. P3: mejoras cosméticas. No se avanza de un hito con P0 sin resolver; los P1 se
+aceptan solo con decisión documentada y solución prevista.
+
+-- 27 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 28
+35.4 Telemetría mínima
+Tiempo de frame CPU/GPU, mínimo y 1% low FPS, memoria y VRAM aproximada, tiempo por actualización de
+malla/colisión, bytes de partida, duración de misión, errores de interacción, operaciones de excavación, volumen
+trasladado y tasa de abandono. No recolectar datos personales sin base legal y controles de privacidad; los tests
+internos pueden utilizar datos agregados o locales.
+36. Registro de riesgos vivo
+Escala de evaluación propuesta: probabilidad (P) y impacto (I) de 1 a 5; prioridad = P×I. Las puntuaciones son un
+análisis inicial para organizar decisiones, no estadísticas observadas.
+Riesgo P×I Disparador / señal Mitigación prioritaria
+R-01 Backend terreno no
+escala 5×5=25 Picos de colisión o memoria Spike temprano, límites por
+zona, ADR
+R-02 Rig excavadora
+inadecuado 4×4=16 Pivotes incorrectos Primitivas y auditoría asset
+R-03 Crecimiento
+descontrolado 5×5=25 Se abre ciudad antes de MVP Gates y congelación de
+alcance
+R-04 Arte consume
+rendimiento 4×4=16 GPU/VRAM desbordadas Presupuesto y perfilado
+continuo
+R-05 Partidas corruptas 3×5=15 Fallos tras cambios de versión Versionado, backups y tests
+R-06 Código IA no verificable 4×4=16 «Funciona» sin compilar Revisión, test y evidencia
+R-07 Licencias de assets
+dudosas 3×5=15 Fuente sin EULA clara Registro y sustitución
+R-08 Tiempo/presupuesto
+insuficiente 4×5=20 Capacidad menor al plan Recortar alcance y replanificar
+R-09 Integración física visual
+inconsistente 4×4=16 Tierra y colisiones divergen Fuente de verdad y pruebas
+R-10 IA atasca maquinaria 4×3=12 Agentes detenidos Rutas acotadas y recuperación
+R-11 Dependencias
+incompatibles 3×4=12 Upgrade rompe builds Fijar versiones y staging
+R-12 Rendimiento hardware
+objetivo 4×4=16 Frames extremos y stutter Presets y test en referencia
+36.1 Revisión mensual de riesgos
+Comprobar si cambió la probabilidad, qué señales aparecieron, quién investiga, fecha de próxima prueba y
+alternativa si falla. Un riesgo no desaparece al escribir «mitigado»; se cierra con evidencia. Los cuatro riesgos
+prioritarios de inicio son terreno, alcance, capacidad y rig.
+
+-- 28 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 29
+37. Costes y escenarios presupuestarios
+Los valores siguientes son rangos ilustrativos de dinero desembolsado en herramientas/recursos, sin salarios,
+cotizaciones, marketing amplio, impuestos, viajes, ni coste del ordenador. El alcance real depende de disponibilidad
+de assets y del trabajo propio.
+Rubro Prototipo austero Producción independiente
+Unreal Engine / Blender / Git básicos 0 € iniciales según condiciones de uso 0 € iniciales según condiciones de uso
+Modelos 3D y materiales 0-200 € 500-3.000 €
+Audio, UI, VFX 0-100 € 200-1.000 €
+Plugins o tecnología de terreno 0 € si se implementa internamente 0-2.500 € o más, según licencia
+Servicios, backups y distribución 0-150 € 150-1.000 €
+Subtotal ilustrativo 0-450 € 850-7.500 €+
+Una licencia gratuita de motor o asset no significa coste cero de desarrollo. El mayor coste real es el tiempo. Los
+ingresos y condiciones de licencia de Unreal dependen del uso y de la política vigente; antes de vender el juego es
+obligatorio revisar sus términos actualizados.
+37.1 Escenarios de equipo y tiempo
+Escenario Alcance razonable Restricción
+1 persona, tiempo parcial Prototipo y slice pequeño Varios años para contenido amplio
+1 persona, tiempo completo Slice sólido y juego acotado Arte, QA y mundo abierto consumen
+capacidad
+Equipo pequeño (3-6 perfiles) Proyecto por fases de 24-36 meses
+como hipótesis
+Depende de especialización y
+financiación
+Equipo amplio Posible expansión AAA Presupuesto y dirección profesional
+mucho mayores
+37.2 Reglas para evitar gastos prematuros
+No comprar una excavadora definitiva sin verificar pivotes y EULA; no pagar un plugin de vóxeles sin test de
+colisión y guardado; no encargar toda la ciudad antes del loop jugable; reservar recursos para QA y compatibilidad;
+mantener una alternativa gratis para cada componente crítico siempre que sea técnicamente viable.
+38. Equipo ideal y responsabilidades
+Función Principal responsabilidad Momento de entrada
+Dirección de producto / diseño Alcance, jugabilidad, balance y
+aprobación Desde semana 1
+Programación gameplay C++ Personaje, maquinaria, misiones Desde semana 1
+
+-- 29 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 30
+Función Principal responsabilidad Momento de entrada
+Ingeniería de físicas/terreno Deformación, material, colisiones Desde semana 2-4
+Artista técnico / 3D Rig, assets, LOD, materiales Desde semana 5
+Diseñador técnico de niveles Parcelas, contratos y región Desde vertical slice
+Audio / VFX / UX Feedback, cabina, tutorial Desde pulido
+QA y optimización Regresión, rendimiento, build Continuo; crece en beta
+Si solo hay una persona, estas son responsabilidades a alternar, no siete contrataciones obligatorias. Es preferible
+una demo pequeña con sistemas bien implementados a muchas disciplinas simultáneas sin profundidad suficiente.
+39. Política de cambios y decisiones
+Todo cambio nuevo debe responder: ¿qué problema del jugador resuelve?, ¿afecta al camino crítico?, ¿qué
+depende de él?, ¿cuánto cuesta validar?, ¿qué elimina del alcance actual? El backlog conserva ideas futuras, pero el
+sprint activo no se amplía sin intercambiar otra tarea. Después de cada fase se realiza una revisión: continuar /
+replantear / reducir alcance / detener.
+40. Lanzamiento, publicación y futuro
+40.1 Preparación de la ficha de producto
+Capturas y vídeos obtenidos del ejecutable real; especificaciones mínimas y recomendadas medidas; descripción
+de mecanismos realmente implementados; controles y accesibilidad; información de idioma y requisitos de
+almacenamiento. Antes de elegir Steam u otra plataforma, verificar sus condiciones, tarifas, reglas de contenido y
+responsabilidad fiscal vigente.
+40.2 Operación posterior
+Preparar sistema de versiones, changelog, canales de reporte, backups de guardados, priorización de crashes y
+mantenimiento de compatibilidad. Proponer una hoja de ruta posterior solo cuando la versión base sea estable:
+más vehículos, más tipos de obra, herramientas de modding y cooperativo si la tecnología del terreno lo permite.
+40.3 Decisiones abiertas que deben tomarse pronto
+ Versión exacta del motor y máquina de referencia.
+ Nivel de realismo de simulación frente a controles accesibles.
+ Backend elegido para terreno y límites de excavación.
+ Modelo final de excavadora y su licencia.
+ Idiomas y plataforma de lanzamiento inicial.
+ Ambición del primer mapa y del primer proyecto de construcción.
+ Capacidad semanal real y financiación disponible.
+
+-- 30 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 31
+PARTE VIII · ANEXOS OPERATIVOS Y PROMPTS
+ANEXO A · Prompt maestro para el agente de desarrollo
+El siguiente prompt resume toda la ambición del juego y la convierte en órdenes de trabajo evaluables. No debe
+ejecutarse como una petición de «terminar todo de golpe»; debe introducir el contexto y después pedir un único
+módulo por iteración.
+PROYECTO: CONSTRUCTION WORLD SIMULATOR
+ROL: Actúa como director técnico, programador de Unreal Engine, diseñador de
+sistemas, ingeniero de simulación y revisor de calidad. Mantén separados los
+hechos verificados, las hipótesis técnicas y las funciones pendientes.
+OBJETIVO: Crear progresivamente un simulador 3D de construcción fotorrealista
+para PC, inspirado en el género Construction Simulator, con maquinaria pesada
+operativa, terreno deformable, transporte, contratos, construcción por fases,
+economía, mundo vivo y una empresa que crece.
+STACK: Unreal Engine 5.x, C++ para lógica crítica, Blueprints para integración,
+Enhanced Input, Chaos Physics / Chaos Vehicles donde encajen, Lumen, Nanite,
+Niagara, MetaSounds, Data Assets, SaveGame, Git y herramientas de perfilado.
+No supongas que un plugin resuelve las orugas o la excavación: diseña y valida.
+PILARES:
+1) Maquinaria articulada: excavadoras, camiones, palas, bulldozers, grúas.
+2) Terreno modificable: extracción, volumen conservado, transporte y depósito.
+3) Construcción visible: preparación, cimentación, estructura y acabados.
+4) Contratos y empresa: materiales, personal, alquileres, mantenimiento, plazos.
+5) Mundo abierto creíble: ciudad, carreteras, canteras, talleres, clima y tráfico.
+6) Gráficos: PBR, iluminación realista, desgaste, barro, polvo y cabinas.
+7) Sonido espacial y controles compatibles con teclado, ratón y mando.
+8) Arquitectura futura: IA trabajadora y posible cooperativo, sin desarrollarlos
+prematuramente si perjudican el MVP.
+PRIMERA VERSIÓN OBLIGATORIA:
+- Escenario pequeño de construcción.
+- Personaje y cámaras en primera/tercera persona.
+- Excavadora de cadenas con pluma, brazo, cuchara, giro y orugas.
+- Camión volquete con conducción y caja basculante.
+- Terreno deformable, transferencia de carga y conservación de volumen.
+- Contrato para excavar, cargar, transportar, descargar y cobrar.
+- Guardado/carga de terreno, máquinas y contrato.
+- Menú, controles y métricas de rendimiento.
+CRITERIOS:
+- Funcionalidad verificable, no mocks que aparenten estar terminados.
+- Cada módulo con archivos modificados, instrucciones y pruebas.
+- Mantener main compilable y no sobrescribir trabajo ajeno.
+- Si no puedes ejecutar Unreal, entrega código y explica qué NO verificaste.
+- Rechaza complejidad injustificada. Entrega un plan corto para la siguiente tarea.
+PRIMERA TAREA: inspecciona el estado del repositorio o solicita solo los datos
+esenciales ausentes; define la arquitectura mínima y crea un esqueleto de proyecto
+orientado a la misión de excavación, sin añadir todavía mundo abierto o IA.
+ANEXO B · Prompt maestro del modelo 3D de excavadora
+Uso: para un generador de 3D, artista o asistente de Blender. El prompt especifica el resultado deseado; no
+garantiza que un generador de texto a 3D entregue automáticamente rig, pivotes y piezas listas para Unreal.
+Create an ultra-photorealistic, AAA-quality, game-ready 3D asset of a modern
+
+-- 31 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 32
+20-25 ton tracked hydraulic excavator for Unreal Engine 5. Use authentic
+industrial engineering proportions but no manufacturer trademarks or logos.
+VISUAL STYLE
+Industrial yellow painted steel, dark graphite details, accurate crawler
+tracks, transparent glass, fully modeled operator cabin, seat, joysticks,
+pedals, screens, warning decals without brands, engine covers, counterweight,
+vents, hoses, hydraulic pistons, bucket teeth, service wear and subtle mud.
+The model must resemble a real construction excavator, never a cartoon or toy.
+CRITICAL STRUCTURE: SEPARATE MESHES
+01 Undercarriage chassis
+02 Left track and right track
+03 Sprockets and rollers
+04 Upper slewing structure
+05 Operator cabin and operable door
+06 Counterweight and engine covers
+07 Main boom
+08 Secondary stick / arm
+09 Excavation bucket
+10 Bucket linkage
+11 Boom hydraulic cylinders and rods
+12 Stick cylinder and rod
+13 Bucket cylinder and rod
+14 Hoses and connectors
+15 Cabin controls, seat, monitors and interior components
+Every articulated part needs a correct pivot at its real rotation axis and a
+logical parent-child hierarchy. Never merge the entire machine into one mesh.
+RIG AND MECHANICAL MOTION
+Upper structure slews around the vertical axis; boom, stick and bucket have
+independent rotational degrees of freedom with appropriate constraints.
+Hydraulic cylinders and rods must follow their anchor points. Separate left
+and right tracks should visually support independent movement. Cabin door
+should be its own articulated part. Use mechanically plausible linkage.
+MATERIALS
+PBR: base color, roughness, metallic, normal and AO when available.
+Painted steel, chrome piston rods, worn bucket teeth, glass, rubber, plastics,
+seat fabric and hydraulic hoses. Realistic scratches, light dust, grease,
+minor rust and mud accumulation; used but well-maintained appearance.
+TECHNICAL DELIVERABLE
+Real-world scale (meters), consistent axes, clean topology, UVs, separate
+material slots, efficient polygon budgets, LOD-ready, collision-ready geometry.
+Export as FBX or glTF/GLB plus source project where possible. Name every mesh
+and keep consistent pivots. Provide isolated model, no environment, people,
+watermark, text overlays or copyrighted logos.
+GAME ENGINE INTENT
+Compatible with Unreal Engine 5. Prioritize accurate mechanics, rigid
+component hierarchy and editable articulation over decorative polygon count.
+A visually perfect single mesh is not accepted.
+IMPORTANT: If the tool cannot generate actual separated meshes, rig, pivots,
+UVs or functional mechanisms, state what is missing. Do not claim the result is
+fully rigged or game-ready without verifying the 3D file in a real editor.
+B.1 Lista de control del modelado de la excavadora
+Escala real y orientación de ejes comprobadas.	☐
+Torreta, pluma, brazo y cuchara son partes separadas.	☐
+Cada cilindro hidráulico tiene cuerpo y vástago distinguibles.	☐
+
+-- 32 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 33
+Pivotes coinciden con ejes mecánicos.	☐
+Las orugas izquierda/derecha pueden animarse por separado.	☐
+Cabina interior útil para cámara en primera persona.	☐
+UV, materiales PBR y geometría revisados.	☐
+Colisiones simplificadas y nombres consistentes.	☐
+Exportación/importación probadas en Unreal.	☐
+Licencia guardada en el inventario de assets.	☐
+ANEXO C · Prompts de IA por etapa
+C.1 Arquitectura del terreno
+Diseña un spike comparativo para excavación en UE5: heightfield editable,
+voxel/SDF y malla dinámica. Entrega matriz de decisión, prototipos acotados,
+interfaces, pruebas de conservación de volumen y benchmark reproducible.
+No selecciones una solución por intuición; incluye métricas de frame,
+colisiones, memoria, persistencia y coste de mantenimiento.
+C.2 Programación de excavadora
+Implementa exclusivamente el controlador de las articulaciones de una
+excavadora en Unreal Engine C++ y Blueprints. Usa límites configurables,
+velocidades suaves, cinemática jerárquica y anclajes de cilindros. Añade
+pruebas de extremos, entradas simultáneas y salida segura de cabina.
+No implementes movimiento de tierra hasta que esto esté validado.
+C.3 Auditoría de modelos 3D
+Revisa este asset 3D para un simulador de excavación: formato, licencia,
+unidades, pivotes, partes separadas, UVs, materiales, polígonos, colisiones,
+LOD y preparación del rig. Emite una tabla Apto / Requiere adaptación /
+No apto, con evidencia visible y pasos concretos para corregirlo.
+No infieras que tiene rig si no puedes inspeccionar el archivo.
+C.4 Revisión de código y rendimiento
+Analiza el diff de esta semana. Identifica cambios de alcance, errores de
+memoria, referencias nulas, cálculos por frame innecesarios, colisiones
+costosas, código no probado y fallos de guardado. Propón cambios mínimos,
+pruebas reproducibles y una tabla de riesgos residuales. No declares que
+un test pasó si no se ejecutó realmente.
+C.5 Generación de contratos
+Crea cinco diseños de contratos para un simulador de construcción. Cada uno
+debe tener objetivo, prerequisitos, recursos, secuencia, condiciones de
+fallo, recompensas, telemetría y criterios de aceptación. Evita misiones
+basadas únicamente en barras de progreso o temporizadores.
+
+-- 33 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 34
+ANEXO D · Inventario de maquinaria a largo plazo
+Categoría Máquinas Mecánica diferenciadora
+Excavación Miniexcavadora, cadenas, ruedas Brazo/cuchara, estabilidad, suelo
+Tierras Bulldozer, motoniveladora Extendidos y perfilado del terreno
+Carga Pala cargadora, retroexcavadora Volumen y ciclos de carga
+Transporte Volquete, tráiler, transportador
+especial Masa y maniobra
+Compactación Rodillo, compactadora Densidad/estado del material
+Hormigón Hormigonera, bomba Transporte, vertido, fraguado
+simplificado
+Izado Grúa torre, móvil, telescópica Pendulación y centro de gravedad
+Obras viales Asfaltadora, fresadora Capas, superficie y calidad
+Logística Carretilla, manipulador telescópico Palés y materiales
+ANEXO E · Glosario rápido
+AAA: estándar aspiracional de producción y acabado, no una certificación. ADR: registro de decisión
+arquitectónica. Blueprint: sistema visual de scripting de Unreal. Chaos: framework de física de Unreal. Data Asset:
+activo de configuración. FPS: imágenes por segundo. Heightfield: terreno definido por alturas sobre una rejilla.
+LOD: nivel de detalle. Lumen: iluminación global/reflejos de Unreal. MVP: versión mínima útil para validar un
+objetivo. Nanite: geometría virtualizada. PBR: renderizado basado en propiedades físicas. SDF: campo de distancia
+con signo. Vertical slice: porción pequeña pero integrada y de calidad representativa. World Partition: streaming
+de mundo por celdas.
+ANEXO F · Referencias técnicas y licencias
+Revisión documental de enlaces públicos: 4 de noviembre de 2026. Las condiciones de servicios, precios y
+versiones pueden cambiar; validar de nuevo antes de adoptar o publicar.
+1. Epic Games — Unreal Engine Licensing
+2. Epic Games — Chaos Vehicles
+3. Epic Games — World Partition
+4. Epic Games — Geometry Scripting Reference
+5. Epic Games — Nanite Virtualized Geometry
+6. Epic Games — Lumen
+7. Fab — Licencia estándar
+8. Poly Haven — Licencia CC0
+9. Google — Deprecación de cuentas individuales de Gemini Code Assist
+10. GitHub — Copilot Plans
+11. Fab — Catálogo
+
+-- 34 of 35 --
+
+CONSTRUCTION WORLD SIMULATOR PLAN MAESTRO / V1.0
+DISEÑO · PRODUCCIÓN · VALIDACIÓN 04.11.2026 | 35
+12. Sketchfab — Catálogo
+13. CGTrader — Catálogo gratuito
+14. Poly Haven — Catálogo
+15. Blender — Modelado
+16. Google Antigravity —
+17. Ollama —
+18. Cline —
+Cierre ejecutivo: la siguiente decisión
+El primer compromiso debe ser construir la misión CWS-001 en una sola parcela y no abandonar ese objetivo
+hasta demostrar excavación, conservación de volumen, carga, transporte, entrega y guardado. Toda característica
+futura se evalúa en función de cuánto mejora esta experiencia, cuánto cuesta validarla y si compromete los hitos
+ya superados. El realismo visual es el acabado; la simulación funcional es el producto.
+
+-- 35 of 35 --
+
