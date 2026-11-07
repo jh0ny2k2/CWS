@@ -139,3 +139,16 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Añadidas las reglas 3–6 a `AGENTS.md`: ubicación del kanban/hoja de ruta (`web/index.html`, `web/kanban.html`, `web/assets/data.js`, `Hojaruta.md`), obligación de comentar y cerrar tarjetas (tareas a `done`, bugs a `Resuelto`), sincronizar la hoja de ruta y `CW.updated`, subir el código con commit + `git push` al cerrar una tarjeta, y permisos totales sin pedir confirmación al usuario.
 - Archivos afectados: `AGENTS.md`, `memoria.md`.
 - Resultado: reglas documentadas; no se ha tocado código ni datos del panel.
+
+## [2026-11-07 11:54] Fase 0 cerrada: herramientas, CI, métricas, unidades y assets
+
+- **F0.03 (hecha):** Blender 5.2.3 LTS instalado con winget y verificado. Registro del launcher reparado: el manifiesto UE_5.8 estaba completo y se añadió la entrada `UE_5.8` a `C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat` (respaldo `.cw-backup`).
+- **F0.04 (hecha):** añadida CI de GitHub Actions (`.github/workflows/ci.yml`), validadores Node (`Scripts/ci/validate.mjs`, `validate-project.mjs`), `CONTRIBUTING.md` con ramas `main`/`develop`/`feature`, y `Scripts/Build.ps1`. Creada y subida la rama `develop`.
+- **F0.06 (hecha):** nuevos `CWLog.h/.cpp` (6 categorías, sin `LogTemp`), `CWUnits.h` (conversiones de unidades), `CWPerformanceSubsystem.h/.cpp` (ventana de 240 frames, FPS/frame/p95/peor, comandos `cw.Perf.*`), overlay de métricas en `CWHUD`, y `docs/CONVENCIONES.md`.
+- **F0.07 (hecha):** `docs/ASSETS.md` con fuentes/licencias y criterios, `docs/assets_manifest.json` con 12 entradas, carpetas `Content/ConstructionWorld/*` y `ArtSource/` con convenciones.
+- **BUG-009 (resuelto):** `CWExcavator.h` estaba sin implementación y rompía el enlace; se implementó `CWExcavator.cpp` (jerarquía torreta/pluma/brazo/cuchara, entradas y cámaras) respetando el header existente.
+- **BUG-001 (resuelto):** instalación de UE 5.8 registrada en el launcher.
+- Compilación final: **Succeeded** (8 acciones, 11,8 s; DLL `UnrealEditor-ConstructionWorld.dll`). Validadores CI en verde.
+- Panel actualizado: F0.03/F0.04/F0.06/F0.07 a `done` con bitácora, hito H0 a `done`, `CW.updated` a 2026-11-07 11:50. README, ARQUITECTURA y Hojaruta sincronizados.
+- Git: commit `ef89dbc` subido a `origin/main` y `origin/develop`.
+- Archivos afectados: `AGENTS.md`, `.github/workflows/ci.yml`, `Scripts/ci/*`, `Scripts/Build.ps1`, `CONTRIBUTING.md`, `Source/ConstructionWorld/Public/CW{Log,Units,PerformanceSubsystem,Excavator}.h`, `Source/ConstructionWorld/Private/CW{Log,PerformanceSubsystem,Excavator}.cpp`, `Source/ConstructionWorld/Private/CWHUD.cpp`, `CWPlayerCharacter.cpp`, `CWVehicleBase.cpp`, `docs/{CONVENCIONES.md,ASSETS.md,assets_manifest.json,ARQUITECTURA.md}`, `Content/ConstructionWorld/*`, `ArtSource/*`, `web/assets/data.js`, `README.md`, `Hojaruta.md`, `memoria.md`.
