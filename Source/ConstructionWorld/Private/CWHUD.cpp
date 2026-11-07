@@ -1,6 +1,7 @@
 #include "CWHUD.h"
 
 #include "CWInteractionComponent.h"
+#include "CWPerformanceSubsystem.h"
 #include "CWPlayerCharacter.h"
 #include "CWVehicleBase.h"
 #include "Engine/Canvas.h"
@@ -18,6 +19,27 @@ void ACWHUD::DrawHUD()
 
 	const float CenterX = Canvas->SizeX * 0.5f;
 	const float CenterY = Canvas->SizeY * 0.5f;
+
+	// F0.06: overlay de rendimiento (se oculta con cw.Perf.Hud 0).
+	if (UCWPerformanceSubsystem::IsHudEnabled())
+	{
+		if (const UWorld* World = GetWorld())
+		{
+			if (const UCWPerformanceSubsystem* Perf = World->GetSubsystem<UCWPerformanceSubsystem>())
+			{
+				if (Perf->GetSampleCount() > 0)
+				{
+					const FString PerfText = FString::Printf(
+						TEXT("%.0f FPS  |  %.2f ms  |  p95 %.2f ms"),
+						Perf->GetAverageFPS(),
+						Perf->GetAverageFrameMs(),
+						Perf->GetP95FrameMs());
+
+					DrawText(PerfText, FLinearColor(0.65f, 1.f, 0.65f, 0.9f), 16.f, 16.f, nullptr, 1.f, false);
+				}
+			}
+		}
+	}
 
 	// Punto de mira
 	const FLinearColor CrosshairColor(1.f, 1.f, 1.f, 0.6f);

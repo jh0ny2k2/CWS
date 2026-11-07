@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-06 22:10",
+  updated: "2026-11-07 11:50",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -16,6 +16,7 @@ window.CW = {
     { title: "Configurar almacenamiento UBA y resolver bucle de permisos en compilación", status: "done" },
     { title: "Implementar conducción WASD, sweep de salida segura y HUD de vehículo", status: "done" },
     { title: "Arrancar e inspeccionar el primer vehículo interactivo en PIE", status: "done" },
+    { title: "Cerrar la Fase 0: herramientas, CI, métricas y assets", status: "done" },
     { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" }
   ],
 
@@ -27,7 +28,7 @@ window.CW = {
       window: "Semanas 1-4",
       goal: "Proyecto que compila, se abre y se puede probar en un entorno definido.",
       gate: "El proyecto compila, otra persona puede seguir el README y ejecutar la escena, y existe una build base.",
-      status: "doing",
+      status: "done",
       tasks: [
         {
           id: "F0.01",
@@ -52,27 +53,31 @@ window.CW = {
         {
           id: "F0.03",
           title: "Instalar herramientas: UE 5.8, Visual Studio 2022, Git, Blender",
-          status: "doing",
-          note: "El motor compila y ejecuta commandlets. El launcher no lo registra como instalado (parche fallido el 06/11) y Blender sigue sin instalar.",
+          status: "done",
+          evidence: "UE 5.8.4 (58902052) funcional y registrado en LauncherInstalled.dat; VS 2022 con MSVC 14.44 y SDK 10.0.22621; Git + LFS; Blender 5.2.3 LTS instalado con winget.",
           log: [
             { date: "2026-11-06 16:40", text: "Detectado que UE 5.8 estaba a medias: solo 19 GB en .egstore y ninguna carpeta Engine, pese a que el README decía «instalándose»." },
             { date: "2026-11-06 16:49", text: "Descarga reanudada con el protocolo de Epic: el log confirma «Dispatching install for AppId …UE_5.8»." },
             { date: "2026-11-06 18:13", text: "29,2 GB y ya existen Build.bat, UnrealBuildTool y UnrealEditor.exe. La compilación falla todavía porque falta Engine\\Source (el instalador sigue extrayendo)." },
             { date: "2026-11-06 18:22", text: "VS 2022 Community con el conjunto de herramientas C++ verificado. Blender no aparece instalado: queda pendiente para el modelado de assets." },
             { date: "2026-11-06 18:39", text: "Aparece Engine\\Source (lo último que faltaba para poder compilar C++). El instalador sigue copiando archivos desde .egstore." },
-            { date: "2026-11-06 19:00", text: "29,9 GB en disco y el motor ya compiló y ejecutó scripts Python. El log del launcher registra «installation failed» a las 17:45 y no lo marca como instalado; no bloquea el trabajo, queda pendiente re-registrarlo." }
+            { date: "2026-11-06 19:00", text: "29,9 GB en disco y el motor ya compiló y ejecutó scripts Python. El log del launcher registra «installation failed» a las 17:45 y no lo marca como instalado; no bloquea el trabajo, queda pendiente re-registrarlo." },
+            { date: "2026-11-07 11:45", text: "Blender 5.2.3 LTS instalado con winget (BlenderFoundation.Blender) y verificado con blender --version." },
+            { date: "2026-11-07 11:47", text: "Registro del launcher reparado: el manifiesto UE_5.8 está completo (bIsIncompleteInstall=false) y se añadió la entrada UE_5.8 a LauncherInstalled.dat con respaldo .cw-backup." }
           ]
         },
         {
           id: "F0.04",
           title: "Repositorio, .gitignore, Git LFS, README y ADR iniciales",
-          status: "doing",
-          note: "Primer commit d24acd0; LFS activo (incluye PDF) y 3 ADR creados. Faltan ramas y CI.",
+          status: "done",
+          evidence: "Commit inicial d24acd0; LFS activo; 3 ADR; ramas main y develop; CI en .github/workflows/ci.yml (validadores Node, sintaxis JS y prohibición de LogTemp); CONTRIBUTING.md y Scripts/Build.ps1.",
           log: [
             { date: "2026-11-06 18:02", text: "Añadido *.pdf a Git LFS y creados ADR-001 (motor 5.8), ADR-002 (terreno heightfield) y ADR-003 (Git LFS)." },
             { date: "2026-11-06 18:03", text: "Commit inicial d24acd0 con 43 archivos; el PDF queda como puntero LFS. Árbol de trabajo limpio." },
             { date: "2026-11-06 18:28", text: "Remoto origin → github.com/jh0ny2k2/CWS.git configurado y rama renombrada a main." },
-            { date: "2026-11-06 18:40", text: "Push completado: 3 commits y el PDF del plan subidos a GitHub (LFS verificado). El token se usó solo para el push y la URL del remoto quedó limpia." }
+            { date: "2026-11-06 18:40", text: "Push completado: 3 commits y el PDF del plan subidos a GitHub (LFS verificado). El token se usó solo para el push y la URL del remoto quedó limpia." },
+            { date: "2026-11-07 11:46", text: "Añadida CI de GitHub Actions: validación de datos del panel, manifiesto de assets, estructura UE, sintaxis JS y prohibición de LogTemp." },
+            { date: "2026-11-07 11:48", text: "Creados CONTRIBUTING.md (ramas main/develop/feature, commits por tarjeta) y Scripts/Build.ps1 para compilar en local." }
           ]
         },
         {
@@ -91,21 +96,30 @@ window.CW = {
         {
           id: "F0.06",
           title: "Logging, métricas de FPS/tiempo de frame y convenciones de unidades",
-          status: "todo",
+          status: "done",
+          evidence: "CWLog.h con 6 categorías (sin LogTemp); UCWPerformanceSubsystem con FPS/frame/p95/peor frame y comandos cw.Perf.*; overlay en el HUD; docs/CONVENCIONES.md y CWUnits.h. Compilación OK.",
           log: [
-            { date: "2026-11-06 18:15", text: "Aparcado hasta tener una build ejecutable; sin motor no se pueden medir FPS ni tiempos de frame." }
+            { date: "2026-11-06 18:15", text: "Aparcado hasta tener una build ejecutable; sin motor no se pueden medir FPS ni tiempos de frame." },
+            { date: "2026-11-07 11:40", text: "Implementados CWLog (6 categorías), CWUnits y UCWPerformanceSubsystem (ventana de 240 frames, FPS/frame/p95/peor y resumen cada 30 s)." },
+            { date: "2026-11-07 11:44", text: "El HUD muestra FPS/ms/p95 (cw.Perf.Hud) y se sustituyeron los 4 LogTemp por categorías propias. Compilación: Succeeded (9 acciones)." },
+            { date: "2026-11-07 11:48", text: "Documentadas unidades, coordenadas, nomenclatura y presupuesto de rendimiento en docs/CONVENCIONES.md." }
           ]
         },
         {
           id: "F0.07",
           title: "Inventario de assets y licencias (excavadora, camión, operario, materiales)",
-          status: "todo"
+          status: "done",
+          evidence: "docs/ASSETS.md con fuentes, licencias y criterios; docs/assets_manifest.json con 12 entradas validado por CI; carpetas Content/ConstructionWorld/* y ArtSource/ creadas.",
+          log: [
+            { date: "2026-11-07 11:46", text: "Creado el inventario: 3 assets de prototipo (Engine) y 9 planificados con fuente y licencia prevista (Fab, Megascans, CC0, CC-BY)." },
+            { date: "2026-11-07 11:49", text: "Añadido el manifiesto legible por máquina y su validación en CI; creadas las carpetas de contenido y ArtSource con convenciones." }
+          ]
         },
         {
           id: "F0.08",
           title: "Panel de seguimiento web: hoja de ruta + kanban",
           status: "done",
-          evidence: "http://127.0.0.1:8100 · probado con jsdom: 10 hitos, 101 tareas y 8 bugs sin errores de JavaScript.",
+          evidence: "http://127.0.0.1:8100 · probado con jsdom: 10 hitos, 96 tareas y 9 bugs sin errores de JavaScript.",
           log: [
             { date: "2026-11-06 17:05", text: "Creados web/index.html (hoja de ruta), web/kanban.html, estilos, datos y un servidor Node sin dependencias en el puerto 8100." },
             { date: "2026-11-06 17:20", text: "Verificadas las 6 rutas del panel por HTTP (200) y sintaxis de los 4 archivos JS con node --check." },
@@ -371,16 +385,17 @@ window.CW = {
     {
       id: "BUG-001",
       title: "La instalación de Unreal Engine 5.8 estaba incompleta",
-      detail: "El motor ya es utilizable (29,9 GB, compila y ejecuta el editor), pero el launcher registró «installation failed» y no lo marca como instalado. Falta re-registrar la instalación.",
+      detail: "Resuelto: el manifiesto UE_5.8 está completo (bIsIncompleteInstall=false) y la instalación se registró en LauncherInstalled.dat (respaldo .cw-backup). El motor compila y ejecuta el editor.",
       severity: "Crítico",
-      status: "En curso",
+      status: "Resuelto",
       log: [
         { date: "2026-11-06 16:40", text: "Detectado al auditar la carpeta del motor: UE_5.8 solo contenía .egstore, sin Engine, y el README afirmaba que se estaba instalando." },
         { date: "2026-11-06 16:49", text: "Reanudada la descarga con el protocolo com.epicgames.launcher://apps/UE_5.8?action=install; el log de Epic confirma el dispatch del install." },
         { date: "2026-11-06 18:13", text: "El instalador ya extrajo UnrealEditor.exe, UnrealBuildTool y Build.bat; la primera compilación falló solo porque aún no existe Engine\\Source." },
         { date: "2026-11-06 18:22", text: "29,1 GB en disco (13,5 GB ya en Engine y 15,6 GB en .egstore). Sigue abierto hasta que termine de extraer y el proyecto compile." },
         { date: "2026-11-06 18:39", text: "Engine\\Source ya existe y .egstore baja de 19 GB a 3,7 GB: la instalación está terminando." },
-        { date: "2026-11-06 19:00", text: "El motor funciona: compiló el proyecto y ejecutó dos commandlets Python. El log del launcher dice «installation failed» (17:45) y LauncherInstalled.dat no lista UE_5.8; queda re-registrar la instalación." }
+        { date: "2026-11-06 19:00", text: "El motor funciona: compiló el proyecto y ejecutó dos commandlets Python. El log del launcher dice «installation failed» (17:45) y LauncherInstalled.dat no lista UE_5.8; queda re-registrar la instalación." },
+        { date: "2026-11-07 11:47", text: "Resuelto: el manifiesto 4C407047… está completo y se añadió la entrada UE_5.8 a LauncherInstalled.dat (AppName UE_5.8, CatalogItemId 18b3b415…). Respaldo guardado como LauncherInstalled.dat.cw-backup." }
       ]
     },
     {
@@ -462,6 +477,17 @@ window.CW = {
       log: [
         { date: "2026-11-06 16:25", text: "ACWHUD.DrawHUD resuelve el componente desde el pawn actual; al poseer el vehículo deja de encontrar la interacción." },
         { date: "2026-11-06 21:55", text: "Resuelto: HUD actualizado para vehículos; soporta interacción delegada y textos informativos de control." }
+      ]
+    },
+    {
+      id: "BUG-009",
+      title: "CWExcavator.h rompía el enlace por falta de implementación",
+      detail: "Resuelto: CWExcavator.cpp implementa el constructor, la jerarquía torreta/pluma/brazo/cuchara, los mapeos de excavación y las cámaras. El proyecto vuelve a enlazar.",
+      severity: "Alto",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-07 11:42", text: "La compilación falló con 7 símbolos externos sin resolver de ACWExcavator: el header estaba en el proyecto sin su .cpp." },
+        { date: "2026-11-07 11:44", text: "Implementado CWExcavator.cpp respetando el header existente. Compilación correcta en 12,97 s." }
       ]
     }
   ]

@@ -90,9 +90,11 @@ Criterios de aceptación del prototipo: 60 FPS en RTX 3060 con ajustes medios, d
 ## 9. Calidad y verificación
 
 - Compilación limpia en `Development Editor` y `Development` Win64 antes de cada hito.
+- CI en GitHub Actions: sintaxis JavaScript, datos del panel, manifiesto de assets, estructura UE y prohibición de `LogTemp`. La compilación real se ejecuta en local con `Scripts/Build.ps1`.
 - Pruebas manuales guionizadas por fase (checklist del MVP en `Hojaruta.md`).
 - Automatización progresiva: pruebas de unidad para economía y contratos, pruebas de mapa para terreno.
 - Perfilado con `stat unit`, `stat game`, `stat physics` y Unreal Insights; presupuesto de frame documentado.
+- Métricas propias en `UCWPerformanceSubsystem` (FPS, frame medio, p95 y peor frame) con overlay en el HUD y resumen periódico en `LogCWPerf`. Convenciones en `docs/CONVENCIONES.md`.
 - Nada se marca como terminado sin una build ejecutable probada.
 
 ## 10. Correspondencia con la hoja de ruta
@@ -101,8 +103,8 @@ La hoja de ruta oficial es el Plan Maestro (`docs/Plan_Maestro_v1.0.pdf`). Sus h
 
 | Hito | Entregable | Estado |
 |---|---|---|
-| H0. Fundaciones | Proyecto compila, escenario 3D, entrada, repositorio y CI base | En curso (compila sin errores y TestLevel verificado; faltan CI y build empaquetada) |
-| H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | En curso (implementado y compilado; falta probar en PIE) |
+| H0. Fundaciones | Proyecto compila, escenario 3D, entrada, repositorio y CI base | **Completado** (UE 5.8 registrado, Blender 5.2.3, compilación limpia, TestLevel verificado, CI y métricas) |
+| H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | En curso (implementado y compilado; falta probar en PIE y malla real) |
 | H1-B. Maquinaria | Excavadora y camión funcionales | Pendiente |
 | H2. Terreno | Prototipo de excavación validado (riesgo máximo) | Pendiente (riesgo principal) |
 | H3. Contratos y vertical slice | Ciclo contractual completo + guardado (CWS-001) | Pendiente |

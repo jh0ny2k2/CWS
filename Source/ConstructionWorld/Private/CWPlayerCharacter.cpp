@@ -1,6 +1,7 @@
 #include "CWPlayerCharacter.h"
 
 #include "CWInteractionComponent.h"
+#include "CWLog.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -105,7 +106,7 @@ void ACWPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInput)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CWPlayerCharacter: se esperaba un UEnhancedInputComponent. Revisa DefaultInput.ini / EnhancedInput."));
+		UE_LOG(LogCWInput, Warning, TEXT("CWPlayerCharacter: se esperaba un UEnhancedInputComponent. Revisa DefaultInput.ini / EnhancedInput."));
 		return;
 	}
 

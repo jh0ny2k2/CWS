@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "updated": "2026-11-07",
+  "notes": "Inventario legible por maquina. Reglas y detalle en docs/ASSETS.md. Estados validos: planificado, prototipo, adquirido, integrado.",
+  "assets": [
+    {
+      "id": "AST-001",
+      "title": "Excavadora de cadenas (prototipo)",
+      "category": "Vehiculo",
+      "status": "prototipo",
+      "source": "Contenido de Unreal Engine (/Engine/BasicShapes/Cube)",
+      "license": "Epic Games - contenido de Engine",
+      "path": "Source/ConstructionWorld/Private/CWExcavator.cpp",
+      "notes": "Jerarquia de cubos para validar torreta, pluma, brazo y cuchara. Sustituir por AST-004."
+    },
+    {
+      "id": "AST-002",
+      "title": "Camion volquete (prototipo)",
+      "category": "Vehiculo",
+      "status": "prototipo",
+      "source": "Contenido de Unreal Engine (/Engine/BasicShapes/Cube)",
+      "license": "Epic Games - contenido de Engine",
+      "path": "Source/ConstructionWorld/Private/CWVehicleBase.cpp",
+      "notes": "Base de conduccion y entrada/salida. Sustituir por AST-005."
+    },
+    {
+      "id": "AST-003",
+      "title": "Operario (prototipo)",
+      "category": "Personaje",
+      "status": "prototipo",
+      "source": "Contenido de Unreal Engine (/Engine/BasicShapes/Cube)",
+      "license": "Epic Games - contenido de Engine",
+      "path": "Source/ConstructionWorld/Private/CWPlayerCharacter.cpp",
+      "notes": "Cubo escalado a la capsula. Sustituir por AST-006."
+    },
+    {
+      "id": "AST-004",
+      "title": "Excavadora AAA con pivotes y orugas",
+      "category": "Vehiculo",
+      "status": "planificado",
+      "source": "Fab (Unreal Marketplace)",
+      "license": "Fab Standard License",
+      "path": "Content/ConstructionWorld/Vehicles",
+      "notes": "Requisitos: torreta, pluma, brazo y cuchara separados; pivotes correctos; orugas animables."
+    },
+    {
+      "id": "AST-005",
+      "title": "Camion volquete AAA",
+      "category": "Vehiculo",
+      "status": "planificado",
+      "source": "Fab (Unreal Marketplace)",
+      "license": "Fab Standard License",
+      "path": "Content/ConstructionWorld/Vehicles",
+      "notes": "Requisitos: ruedas separadas, caja basculante con pivote y colisiones."
+    },
+    {
+      "id": "AST-006",
+      "title": "Operario riggeado con animaciones",
+      "category": "Personaje",
+      "status": "planificado",
+      "source": "Fab / Mixamo",
+      "license": "Fab Standard License / Mixamo terms",
+      "path": "Content/ConstructionWorld/Characters",
+      "notes": "Caminar, correr, saltar y entrar/salir de cabina."
+    },
+    {
+      "id": "AST-007",
+      "title": "Materiales de tierra, grava y arena",
+      "category": "Material",
+      "status": "planificado",
+      "source": "Quixel Megascans (Fab)",
+      "license": "Fab / Megascans License",
+      "path": "Content/ConstructionWorld/Materials",
+      "notes": "PBR 2K/4K con blending por altura y pendiente para el terreno."
+    },
+    {
+      "id": "AST-008",
+      "title": "Materiales de asfalto y hormigon",
+      "category": "Material",
+      "status": "planificado",
+      "source": "Quixel Megascans / AmbientCG",
+      "license": "Fab / CC0",
+      "path": "Content/ConstructionWorld/Materials",
+      "notes": "Para carreteras, soleras y edificios."
+    },
+    {
+      "id": "AST-009",
+      "title": "Props de obra: vallas, conos y senales",
+      "category": "Entorno",
+      "status": "planificado",
+      "source": "Fab / Kenney",
+      "license": "Fab Standard License / CC0",
+      "path": "Content/ConstructionWorld/Environment",
+      "notes": "Elementos modulares y instanciables."
+    },
+    {
+      "id": "AST-010",
+      "title": "Cielo, vegetacion y rocas",
+      "category": "Entorno",
+      "status": "planificado",
+      "source": "Quixel Megascans / Poly Haven",
+      "license": "Fab / CC0",
+      "path": "Content/ConstructionWorld/Environment",
+      "notes": "HDRI, arboles y rocas para el mapa de pruebas ampliado."
+    },
+    {
+      "id": "AST-011",
+      "title": "Audio de motor, hidraulica, impactos y ambiente",
+      "category": "Audio",
+      "status": "planificado",
+      "source": "Freesound / Fab Audio",
+      "license": "CC0 / CC-BY / Fab Standard License",
+      "path": "Content/ConstructionWorld/Audio",
+      "notes": "Si es CC-BY, anotar la atribucion para los creditos."
+    },
+    {
+      "id": "AST-012",
+      "title": "Iconos e indicadores de UI",
+      "category": "UI",
+      "status": "planificado",
+      "source": "Kenney / creacion propia",
+      "license": "CC0",
+      "path": "Content/ConstructionWorld/UI",
+      "notes": "Contratos, materiales, maquinaria y estados."
+    }
+  ]
+}

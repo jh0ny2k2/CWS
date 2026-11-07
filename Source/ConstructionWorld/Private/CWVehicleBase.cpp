@@ -1,6 +1,7 @@
 #include "CWVehicleBase.h"
 
 #include "CWPlayerCharacter.h"
+#include "CWLog.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -67,7 +68,7 @@ void ACWVehicleBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CWVehicleBase: se esperaba un UEnhancedInputComponent."));
+		UE_LOG(LogCWVehicle, Warning, TEXT("CWVehicleBase: se esperaba un UEnhancedInputComponent."));
 	}
 
 	ApplyVehicleMappingContext();
@@ -186,7 +187,7 @@ FVector ACWVehicleBase::FindSafeExitLocation() const
 		}
 	}
 
-	UE_LOG(LogTemp, Warning,
+	UE_LOG(LogCWVehicle, Warning,
 		TEXT("CWVehicleBase::FindSafeExitLocation - no se encontro un punto libre; "
 		     "usando offset por defecto."));
 	return GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
@@ -218,7 +219,7 @@ bool ACWVehicleBase::TryEnter(ACWPlayerCharacter* Player)
 	// Unreal usa el origen del mesh (comportamiento seguro). Se avisa en log.
 	if (!BodyMesh->DoesSocketExist(DriverSeatSocket))
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWVehicleBase: El socket '%s' no existe en BodyMesh. "
 			     "Se usara el origen del mesh hasta que se modele la cabina."),
 			*DriverSeatSocket.ToString());

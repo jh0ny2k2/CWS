@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  panel-y-datos:
+    name: Panel, datos y estructura
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Comprobar sintaxis de JavaScript
+        run: |
+          for f in web/server.js web/assets/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
+
+      - name: Validar datos del panel, manifiesto de assets y estructura
+        run: node Scripts/ci/validate.mjs
+
+      - name: Prohibir LogTemp en código de juego
+        run: |
+          if grep -rn "LogTemp" Source/ --include="*.cpp" --include="*.h"; then
+            echo "::error::Usa las categorias de CWLog.h en lugar de LogTemp."
+            exit 1
+          fi
+          echo "OK: no hay LogTemp en Source/."
+
+  proyecto:
+    name: Estructura del proyecto UE
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validar .uproject, configs y targets
+        run: node Scripts/ci/validate-project.mjs
+
+  # La compilacion real con UnrealBuildTool requiere Windows + UE 5.8 instalado,
+  # que no esta disponible en los runners publicos de GitHub. Se ejecuta en local
+  # con Scripts/Build.ps1 antes de cada push (ver CONTRIBUTING.md).

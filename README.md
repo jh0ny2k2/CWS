@@ -1,9 +1,9 @@
 # Construction World — Simulador de construcción 3D (UE 5.8)
 
-Estado actual: **H0 — Fundaciones** y parte de **H1-A** (esqueleto C++, personaje, cámaras, interacción y entrar/salir de un vehículo).
-El objetivo inmediato es tener un proyecto que compile y se abra en Unreal Engine. El resto de sistemas (conducción, terreno deformable, contratos, mundo abierto) se construirá sobre esta base.
+Estado actual: **H0 (Fundaciones) completado** y **H1-A** en curso (esqueleto C++, personaje, cámaras, interacción y entrar/salir de un vehículo).
+El objetivo inmediato es cerrar H1-A (pruebas en PIE y malla real del personaje) antes de pasar a la maquinaria de H1-B.
 
-> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (13/13 acciones, `UnrealEditor-ConstructionWorld.dll`) y el nivel `/Game/Maps/TestLevel` está generado y verificado con 10 actores. Falta probar personaje y vehículo en PIE y empaquetar una build base.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 10 actores, y el proyecto tiene CI, métricas de rendimiento y convenciones de unidades. Falta empaquetar una build base y probar el ciclo completo en PIE.
 
 ## Panel de seguimiento
 
@@ -25,8 +25,10 @@ Los datos del panel viven en `web/assets/data.js` y se actualizan a medida que a
 | Windows 10/11 64 bits | OK |
 | GPU compatible con DX12 (RTX 3060) | OK |
 | Git + Git LFS | OK |
-| Visual Studio 2022 + workload "Desarrollo de juegos con C++" | OK (verificado) |
-| Unreal Engine 5.8 (Epic Games Launcher) | Instalándose en `C:\Program Files\Epic Games\UE_5.8` |
+| Visual Studio 2022 + workload "Desarrollo de juegos con C++" | OK (MSVC 14.44 + SDK 10.0.22621) |
+| Unreal Engine 5.8 (Epic Games Launcher) | OK · `C:\Program Files\Epic Games\UE_5.8` (registrado en el launcher) |
+| Blender | OK · 5.2.3 LTS (instalado con winget) |
+| Node.js (panel y CI) | OK · Node 20+ |
 | RAM | 16 GB (suficiente para empezar; 32 GB recomendable para mundo abierto) |
 | Disco | C: ~90 GB libres (UE ocupa ~50-60 GB) · J: 714 GB libres → si C: queda muy justo, mueve UE a J: |
 
@@ -54,18 +56,36 @@ Source/
       CWInteractable.h              Interfaz de interacción
       CWInteractionComponent.h      Detección por trazado + prompt
       CWVehicleBase.h               Base de vehículo/maquinaria (Fase 2-3)
-      CWHUD.h                       HUD provisional (punto de mira + prompt)
+      CWExcavator.h                 Excavadora articulada (H1-B, prototipo)
+      CWHUD.h                       HUD provisional (punto de mira + prompt + métricas)
+      CWLog.h                       Categorías de log del proyecto
+      CWUnits.h                     Constantes y conversión de unidades
+      CWPerformanceSubsystem.h      Métricas de FPS y tiempo de frame
     Private/
       ConstructionWorld.cpp         Implementación del módulo
       CWGameMode.cpp
       CWPlayerCharacter.cpp
       CWInteractionComponent.cpp
       CWVehicleBase.cpp
+      CWExcavator.cpp
       CWHUD.cpp
+      CWLog.cpp
+      CWPerformanceSubsystem.cpp
 Content/Maps/                       Aquí se genera TestLevel.umap
+Content/ConstructionWorld/          Assets organizados (vehículos, materiales, audio…)
+ArtSource/                          Fuentes editables de arte (.blend, .psd)
 Scripts/Python/
   cw_build_test_level.py            Genera el nivel de pruebas automáticamente
+Scripts/
+  Build.ps1                         Compila con UnrealBuildTool
+  ci/validate.mjs                   Valida panel, assets y estructura
+  ci/validate-project.mjs           Valida .uproject, targets y módulo
+.github/workflows/ci.yml            CI de GitHub Actions
 docs/                               Documentación ampliada
+  CONVENCIONES.md                   Unidades, coordenadas, nombres y logging
+  ASSETS.md                         Inventario de assets y licencias
+  assets_manifest.json              Inventario legible por máquina
+CONTRIBUTING.md                     Ramas, commits y validación previa al push
 ```
 
 Contenido implementado en código (compilado y con nivel de pruebas generado el 06/11/2026):
@@ -75,13 +95,17 @@ Contenido implementado en código (compilado y con nivel de pruebas generado el 
 - `ACWPlayerCharacter`: cápsula + cámara en tercera persona (spring arm con lag) y primera persona (tecla V), movimiento relativo a cámara, salto, mirada con ratón e interacción (E).
 - `UCWInteractionComponent`: trazado esférico desde la vista del jugador que detecta actores `ICWInteractable`.
 - `ACWVehicleBase`: vehículo de prueba con caja de colisión, malla placeholder, cámara, entrada/salida (E/F), ocultado y re-posesión del personaje. Todavía **no conduce** (Fase 3).
-- `ACWHUD`: punto de mira y prompt de interacción dibujado con Canvas (provisional; se sustituirá por UMG).
+- `ACWHUD`: punto de mira, prompt de interacción y overlay de rendimiento (FPS, ms, p95) dibujado con Canvas (provisional; se sustituirá por UMG).
+- `CWLog`: seis categorías de log (`LogCW`, `LogCWInput`, `LogCWVehicle`, `LogCWInteraction`, `LogCWPerf`, `LogCWAssets`); `LogTemp` está prohibido y la CI lo comprueba.
+- `UCWPerformanceSubsystem`: ventana móvil de 240 frames con FPS medio, frame medio, p95 y peor frame; resumen periódico en `LogCWPerf`.
+- `CWUnits`: conversiones centralizadas (cm/UU, km/h/cm/s, kg/toneladas, m³/litros, grados/radianes). Convenciones completas en `docs/CONVENCIONES.md`.
+- `ACWExcavator`: prototipo articulado de excavadora (torreta, pluma, brazo, cuchara y tres cámaras) pendiente de asset real.
 - Enhanced Input **creado por código** (sin assets binarios): el proyecto funciona nada más compilar, sin depender de archivos `.uasset` que aún no existen.
 - Placeholder visual (cubo de Engine) escalado a la cápsula; se sustituirá por un personaje real.
 - Configuración de render: Lumen, Nanite, Virtual Shadow Maps, DX12, sin lightmaps estáticos.
 - Script Python que genera un nivel de pruebas con suelo, bloques, vehículo, sol, cielo y niebla.
 
-No implementado todavía (no lo vamos a fingir): conducción y física de vehículos, excavadora, terreno deformable, carga de materiales, contratos, economía, IA, mundo abierto, menús, guardado.
+No implementado todavía (no lo vamos a fingir): física de vehículos avanzada, excavadora con asset real, terreno deformable, carga de materiales, contratos, economía, IA, mundo abierto, menús y guardado.
 
 ---
 
@@ -89,7 +113,7 @@ No implementado todavía (no lo vamos a fingir): conducción y física de vehíc
 
 ### Paso 1 — Unreal Engine
 
-**Unreal Engine 5.8** está instalado en `C:\Program Files\Epic Games\UE_5.8` y es plenamente funcional (compila C++ y ejecuta el editor). El launcher de Epic no lo marca como instalado tras un parche fallido; si quieres que aparezca en la biblioteca, vuelve a lanzar la instalación desde **Epic Games Launcher → Biblioteca → Motor → +** sobre la misma ruta.
+**Unreal Engine 5.8** está instalado en `C:\Program Files\Epic Games\UE_5.8`, registrado en `LauncherInstalled.dat` y es plenamente funcional (compila C++ y ejecuta el editor). Si el launcher no lo muestra en la biblioteca, abre **Epic Games Launcher → Biblioteca → Motor → +** sobre la misma ruta; el manifiesto ya está completo.
 
 El proyecto ya está asociado a `"EngineAssociation": "5.8"`.
 
@@ -106,9 +130,15 @@ Compilación por línea de comandos (sustituye la ruta si instalaste en otro sit
 & "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" ConstructionWorldEditor Win64 Development -Project="C:\Users\Jhony\Desktop\Juego\ConstructionWorld.uproject" -WaitMutex
 ```
 
-### Paso 3 — Generar el nivel de pruebas
+O con el script del proyecto:
 
-El proyecto apunta a `/Game/Maps/TestLevel`, que todavía no existe. Con el editor abierto:
+```powershell
+.\Scripts\Build.ps1
+```
+
+### Paso 3 — Nivel de pruebas
+
+El nivel `/Game/Maps/TestLevel` **ya está generado y verificado** (10 actores `CW_`). Solo hay que regenerarlo si se borra o se quiere partir de cero. Con el editor abierto:
 
 1. Menú **Tools → Execute Python Script…**
 2. Selecciona `Scripts\Python\cw_build_test_level.py`.
@@ -138,6 +168,20 @@ Pulsa **Play** (Alt+P). Debes ver el escenario, el cubo-placeholder del personaj
 | Salir del vehículo | F |
 | Salir del juego (PIE) | Esc |
 
+**Métricas de rendimiento (F0.06)**
+
+El HUD muestra `FPS | ms | p95 ms` en la esquina superior izquierda. Comandos de consola (`~`):
+
+| Comando | Efecto |
+|---|---|
+| `cw.Perf.Hud 0` / `1` | Oculta / muestra el overlay de métricas |
+| `cw.Perf.ReportNow` | Escribe un resumen inmediato en `LogCWPerf` |
+| `cw.Perf.Report 0` / `1` | Desactiva / activa el resumen automático |
+| `cw.Perf.Interval 30` | Cambia los segundos entre resúmenes |
+| `cw.Perf.Reset` | Vacía la ventana de muestras |
+
+Las unidades y convenciones de código están en `docs/CONVENCIONES.md`.
+
 ---
 
 ## 4. Problemas frecuentes
@@ -152,9 +196,11 @@ Pulsa **Play** (Alt+P). Debes ver el escenario, el cubo-placeholder del personaj
 
 ## 5. Siguiente hito
 
-1. Probar en PIE el personaje (1ª/3ª persona, interacción) y el vehículo (entrar/salir).
-2. Cerrar H1-A: primera persona con malla real, animaciones y mapa de controles configurable.
-3. H1-B: conducción, motor, excavadora y camión volquete funcionales.
+**H0 cerrado.** El trabajo continúa en **H1-A**:
+
+1. Probar en PIE el personaje (1ª/3ª persona, interacción) y el vehículo (entrar/salir) con el ciclo completo.
+2. Cerrar H1-A: malla real del personaje, animaciones y mapa de controles configurable.
+3. H1-B: excavadora con asset real, motor, física de orugas y camión volquete funcional.
 4. H2: prototipo de terreno deformable (la decisión técnica más importante del proyecto).
 
 Objetivo del MVP: aceptar un contrato, excavar 40 m³, cargar el camión, transportar, descargar y cobrar, con guardado de partida.

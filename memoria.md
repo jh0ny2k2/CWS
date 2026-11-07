@@ -133,3 +133,9 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Se resolvió el bloqueo de compilación de UE 5.8: el acelerador UBA intentaba escribir sesiones en `C:\ProgramData` provocando un bucle infinito de denegaciones de acceso; se configuró `BuildConfiguration.xml` con `RootDir` en `Intermediate\UBA`, logrando compilación limpia en 33,2 s (8 acciones, DLL actualizada a 320 KB).
 - Actualizado el panel kanban y hoja de ruta en `web/assets/data.js` con las tareas F1.01-F1.06 completadas y los bugs BUG-006, BUG-007 y BUG-008 resueltos.
 - Archivos afectados: `Source/ConstructionWorld/Public/CWVehicleBase.h`, `Source/ConstructionWorld/Private/CWVehicleBase.cpp`, `Source/ConstructionWorld/Public/CWHUD.h`, `Source/ConstructionWorld/Private/CWHUD.cpp`, `Source/ConstructionWorld/Private/CWPlayerCharacter.cpp`, `Saved/UnrealBuildTool/BuildConfiguration.xml`, `web/assets/data.js`, `memoria.md`.
+
+## [2026-11-07 11:38] AGENTS.md ampliado con reglas de kanban, hoja de ruta, push y permisos
+
+- Añadidas las reglas 3–6 a `AGENTS.md`: ubicación del kanban/hoja de ruta (`web/index.html`, `web/kanban.html`, `web/assets/data.js`, `Hojaruta.md`), obligación de comentar y cerrar tarjetas (tareas a `done`, bugs a `Resuelto`), sincronizar la hoja de ruta y `CW.updated`, subir el código con commit + `git push` al cerrar una tarjeta, y permisos totales sin pedir confirmación al usuario.
+- Archivos afectados: `AGENTS.md`, `memoria.md`.
+- Resultado: reglas documentadas; no se ha tocado código ni datos del panel.
