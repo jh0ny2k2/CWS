@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "CWVehicleBase.h"
+#include "CWTerrainTypes.h"
 #include "CWExcavator.generated.h"
 
 class ACWDumpTruck;
@@ -139,6 +140,13 @@ public:
 		return BucketCapacityCubicMeters > 0.f ? BucketLoadCubicMeters / BucketCapacityCubicMeters : 0.f;
 	}
 
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Load")
+	ECWSoilType GetBucketSoilType() const { return BucketSoilType; }
+
+	/** Nombre legible del material que lleva la cuchara. */
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Load")
+	FString GetBucketSoilName() const;
+
 	/** Excava si la cuchara esta vacia y toca el suelo; si esta llena y hay un
 	 *  camion cerca, descarga en el. Tecla T. */
 	UFUNCTION(BlueprintCallable, Category = "CW|Excavator|Load")
@@ -227,6 +235,18 @@ public:
 	/** Distancia maxima de la punta de cuchara al suelo para excavar. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Excavator|Load")
 	float DigReachCm = 220.f;
+
+	/** Radio del area de excavacion en el terreno (H2). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Excavator|Load")
+	float DigRadiusCm = 120.f;
+
+	/** Profundidad maxima retirada por cucharada (H2). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Excavator|Load")
+	float MaxDigDepthCm = 120.f;
+
+	/** Radio del monton al vaciar la cuchara en el suelo (H2). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Excavator|Load")
+	float DepositRadiusCm = 150.f;
 
 	/** Distancia maxima al camion para descargar la cuchara. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Excavator|Load")
@@ -428,6 +448,9 @@ protected:
 
 	// Carga de la cuchara (m3)
 	float BucketLoadCubicMeters = 0.f;
+
+	/** Material que lleva la cuchara (H2). */
+	ECWSoilType BucketSoilType = ECWSoilType::Earth;
 
 	// Estado de audio
 	bool bHydraulicAudioActive = false;

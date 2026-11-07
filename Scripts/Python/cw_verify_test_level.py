@@ -51,7 +51,7 @@ def verify():
     expected = [
         "CW_Ground", "CW_Block_A", "CW_Block_B", "CW_Block_C",
         "CW_TestVehicle", "CW_TestExcavator", "CW_TestDumpTruck", "CW_DumpZone",
-        "CW_PlayerStart", "CW_Sun",
+        "CW_TerrainField", "CW_PlayerStart", "CW_Sun",
         "CW_SkyAtmosphere", "CW_SkyLight", "CW_HeightFog",
     ]
     labels = [line.split(" | ")[0] for line in found]

@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CWTerrainTypes.h"
 #include "CWDumpZone.generated.h"
 
 class UBoxComponent;
 class UStaticMeshComponent;
+class ACWStockpile;
 
 /** Evento emitido cuando un camion descarga material en la zona. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCWLoadDelivered, float, CubicMeters, AActor*, Source);
@@ -42,6 +44,9 @@ public:
 	float GetCapacityCubicMeters() const { return CapacityCubicMeters; }
 
 	UFUNCTION(BlueprintPure, Category = "CW|DumpZone")
+	float GetDepositedIntoTerrainM3() const { return DepositedIntoTerrainM3; }
+
+	UFUNCTION(BlueprintPure, Category = "CW|DumpZone")
 	FText GetZoneStatusText() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "CW|DumpZone")
@@ -53,6 +58,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpZone")
 	float CapacityCubicMeters = 200.f;
 
+	/** Si es true, el material entregado se deposita en el terreno (H2). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpZone")
+	bool bDepositIntoTerrain = true;
+
+	/** Radio del monton depositado en el terreno (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpZone")
+	float DepositRadiusCm = 500.f;
+
+	/** Material que se deposita en el terreno. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpZone")
+	ECWSoilType DepositSoilType = ECWSoilType::Earth;
+
+	/** Acopio visual opcional; si esta asignado, recibe el material en lugar del terreno. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpZone")
+	TObjectPtr<ACWStockpile> LinkedStockpile;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpZone")
 	TObjectPtr<UBoxComponent> ZoneBox;
 
@@ -62,4 +83,7 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpZone")
 	float DeliveredCubicMeters = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpZone")
+	float DepositedIntoTerrainM3 = 0.f;
 };

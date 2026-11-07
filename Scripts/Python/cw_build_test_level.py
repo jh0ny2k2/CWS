@@ -113,6 +113,26 @@ def build_test_level():
     else:
         _log("CWDumpZone no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
 
+    # Campo de terreno deformable (H2). Se eleva 2 cm sobre el suelo de referencia
+    # para evitar z-fighting; el terreno real se genera en BeginPlay.
+    terrain_class = unreal.load_class(None, "/Script/ConstructionWorld.CWTerrainField")
+    if terrain_class:
+        terrain = _spawn(eas, terrain_class, unreal.Vector(x=0.0, y=0.0, z=2.0),
+                         unreal.Rotator(pitch=0.0, yaw=0.0, roll=0.0))
+        terrain.set_actor_label(LABEL_PREFIX + "TerrainField")
+        for prop, value in [
+            ("grid_cells_x", 64), ("grid_cells_y", 64),
+            ("cell_size_cm", 234.375), ("chunk_cells", 8),
+            ("max_chunk_rebuilds_per_tick", 4), ("min_height_cm", -600.0),
+            ("max_height_cm", 400.0),
+        ]:
+            try:
+                terrain.set_editor_property(prop, value)
+            except Exception as exc:  # noqa: BLE001
+                _log("No se pudo asignar %s: %s" % (prop, exc))
+    else:
+        _log("CWTerrainField no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
+
     # Punto de aparicion
     player_start = _spawn(eas, unreal.PlayerStart, unreal.Vector(x=0.0, y=-600.0, z=120.0),
                           unreal.Rotator(pitch=0.0, yaw=90.0, roll=0.0))

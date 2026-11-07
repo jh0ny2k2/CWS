@@ -5,6 +5,9 @@
 #include "CWDumpTruck.h"
 #include "CWDumpZone.h"
 #include "CWPlayerCharacter.h"
+#include "CWStockpile.h"
+#include "CWTerrainField.h"
+#include "CWTerrainTypes.h"
 #include "CWVehicleBase.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
@@ -16,6 +19,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "TimerManager.h"
 
 namespace
@@ -598,6 +603,257 @@ void ACWTestRunner::RunTruckDumpTest()
 	}
 }
 
+void ACWTestRunner::StartTerrainTest(bool bInExitWhenDone)
+{
+	PendingCycles = 6;
+	bExitWhenDone = bInExitWhenDone;
+	bFinished = false;
+
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: programada la bateria de terreno (T-001..T-006)."));
+
+	GetWorldTimerManager().SetTimer(
+		TerrainTimer, this, &ACWTestRunner::RunTerrainTest, 1.0f, false);
+}
+
+bool ACWTestRunner::SpawnTerrainForTest()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogCWTest, Error, TEXT("CW_TEST: no hay mundo para las pruebas de terreno."));
+		return false;
+	}
+
+	auto SpawnField = [World](const FVector& Location, int32 Cells) -> ACWTerrainField*
+	{
+		const FTransform Transform(FRotator::ZeroRotator, Location);
+		ACWTerrainField* Field = World->SpawnActorDeferred<ACWTerrainField>(
+			ACWTerrainField::StaticClass(), Transform, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+		if (!Field)
+		{
+			return nullptr;
+		}
+
+		Field->GridCellsX = Cells;
+		Field->GridCellsY = Cells;
+		Field->CellSizeCm = 100.f;
+		Field->ChunkCells = 8;
+		Field->MaxChunkRebuildsPerTick = 4;
+		Field->bGenerateCollision = true;
+		Field->bCarveInitialPit = false;
+		Field->MinHeightCm = -600.f;
+		Field->MaxHeightCm = 400.f;
+		Field->FinishSpawning(Transform);
+		return Field;
+	};
+
+	TerrainA = SpawnField(FVector(0.f, 20000.f, 0.f), 32);
+	TerrainB = SpawnField(FVector(0.f, 40000.f, 0.f), 16);
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	Stockpile = World->SpawnActor<ACWStockpile>(
+		ACWStockpile::StaticClass(), FVector(8000.f, 20000.f, 0.f),
+		FRotator::ZeroRotator, Params);
+
+	if (!TerrainA || !TerrainB || !Stockpile)
+	{
+		UE_LOG(LogCWTest, Error, TEXT("CW_TEST: no se pudieron crear los actores de terreno."));
+		return false;
+	}
+
+	UE_LOG(LogCWTest, Display,
+		TEXT("CW_TEST: terreno A en %s (32x32, 32 m) y B en %s (16x16, 16 m)."),
+		*TerrainA->GetActorLocation().ToString(), *TerrainB->GetActorLocation().ToString());
+	return true;
+}
+
+void ACWTestRunner::RunTerrainTest()
+{
+	if (bFinished)
+	{
+		return;
+	}
+
+	if (!SpawnTerrainForTest())
+	{
+		FinishTest(false, TEXT("no se pudieron preparar los campos de terreno"));
+		return;
+	}
+
+	const FVector CenterA = TerrainA->GetFieldCenter();
+	const FVector CenterB = TerrainB->GetFieldCenter();
+
+	// T-001: 10 cucharadas uniformes (1.2 m3) en posiciones separadas.
+	float Sum1 = 0.f;
+	float Min1 = TNumericLimits<float>::Max();
+	float Max1 = 0.f;
+	for (int32 Index = 0; Index < 10; ++Index)
+	{
+		const FVector Point = CenterA + FVector(-1200.f + Index * 260.f, 0.f, 0.f);
+		const float Removed = TerrainA->DigAt(Point, 120.f, 120.f, 1.2f);
+		Sum1 += Removed;
+		Min1 = FMath::Min(Min1, Removed);
+		Max1 = FMath::Max(Max1, Removed);
+	}
+	const bool bT1 = Min1 >= 0.8f && Max1 <= 1.4f && Sum1 >= 10.f && Sum1 <= 13.5f;
+
+	// T-002: 100 cucharadas sobre la misma zona (debe topar con MinHeight).
+	const FVector Point2 = CenterA + FVector(0.f, 600.f, 0.f);
+	float Sum2 = 0.f;
+	for (int32 Index = 0; Index < 100; ++Index)
+	{
+		Sum2 += TerrainA->DigAt(Point2, 150.f, 120.f, 1.2f);
+	}
+	const float Height2 = TerrainA->GetHeightAtLocation(Point2);
+	const bool bT2 = !FMath::IsNaN(Height2)
+		&& Height2 >= TerrainA->MinHeightCm - 1.f
+		&& Sum2 >= 5.f
+		&& Sum2 <= 140.f;
+
+	// T-003: 1.000 operaciones distribuidas, con presupuesto de tiempo y conservacion.
+	const float Initial3 = TerrainA->GetTotalVolumeM3();
+	const double Start3 = FPlatformTime::Seconds();
+	float Sum3 = 0.f;
+	for (int32 Index = 0; Index < 1000; ++Index)
+	{
+		const int32 GridX = Index % 20;
+		const int32 GridY = (Index / 20) % 20;
+		const FVector Point = CenterA + FVector(-950.f + GridX * 100.f, -950.f + GridY * 100.f, 0.f);
+		Sum3 += TerrainA->DigAt(Point, 100.f, 60.f, 0.5f);
+	}
+	const double Elapsed3 = FPlatformTime::Seconds() - Start3;
+	const float Final3 = TerrainA->GetTotalVolumeM3();
+	const float Conservation3 = FMath::Abs((Initial3 - Final3) - Sum3);
+	const int32 PendingBefore = TerrainA->GetPendingChunkCount();
+	const int32 Processed3 = TerrainA->FlushDirtyChunks(TerrainA->MaxChunkRebuildsPerTick);
+	const int32 PendingAfter = TerrainA->GetPendingChunkCount();
+	const bool bT3 = Elapsed3 < 5.0
+		&& Conservation3 < 0.5f
+		&& Sum3 > 0.f
+		&& Processed3 <= TerrainA->MaxChunkRebuildsPerTick
+		&& PendingAfter <= PendingBefore;
+
+	// T-004: excavar y volver a depositar conservando el volumen.
+	const float Initial4 = TerrainB->GetTotalVolumeM3();
+	const FVector Point4 = CenterB;
+	const float Removed4 = TerrainB->DigAt(Point4, 300.f, 100.f, 20.f);
+	const float Deposited4 = TerrainB->DepositAt(Point4, 300.f, Removed4, ECWSoilType::Earth);
+	const float Final4 = TerrainB->GetTotalVolumeM3();
+	const float Tolerance4 = FMath::Max(0.2f, Removed4 * 0.02f);
+	const bool bT4 = Removed4 > 5.f
+		&& Deposited4 > 0.f
+		&& FMath::Abs(Final4 - Initial4) <= Tolerance4;
+
+	// T-005: guardar/cargar deltas y rechazar archivos corruptos o truncados.
+	const FString SavePath = FPaths::Combine(
+		FPaths::ProjectSavedDir(), TEXT("Terrain"), TEXT("test_terrain.cwt"));
+	FString SaveError;
+	const float BeforeSave = TerrainA->GetTotalVolumeM3();
+	const double SaveStart = FPlatformTime::Seconds();
+	const bool bSaved = TerrainA->SaveStateToFile(SavePath, SaveError);
+	const double SaveMs = (FPlatformTime::Seconds() - SaveStart) * 1000.0;
+
+	TerrainA->DigAt(CenterA + FVector(1300.f, 1300.f, 0.f), 150.f, 120.f, 2.f);
+	const float Modified = TerrainA->GetTotalVolumeM3();
+
+	FString LoadError;
+	const double LoadStart = FPlatformTime::Seconds();
+	const bool bLoaded = TerrainA->LoadStateFromFile(SavePath, LoadError);
+	const double LoadMs = (FPlatformTime::Seconds() - LoadStart) * 1000.0;
+	const float Restored = TerrainA->GetTotalVolumeM3();
+
+	TArray<uint8> Garbage;
+	Garbage.SetNumZeroed(128);
+	const FString BadPath = SavePath + TEXT(".bad");
+	FFileHelper::SaveArrayToFile(Garbage, *BadPath);
+	FString BadError;
+	const bool bBadLoaded = TerrainA->LoadStateFromFile(BadPath, BadError);
+
+	TArray<uint8> ValidData;
+	FFileHelper::LoadFileToArray(ValidData, *SavePath);
+	ValidData.SetNum(ValidData.Num() / 2);
+	const FString TruncPath = SavePath + TEXT(".trunc");
+	FFileHelper::SaveArrayToFile(ValidData, *TruncPath);
+	FString TruncError;
+	const bool bTruncLoaded = TerrainA->LoadStateFromFile(TruncPath, TruncError);
+
+	const bool bT5 = bSaved && bLoaded
+		&& FMath::Abs(Restored - BeforeSave) <= 0.1f
+		&& FMath::Abs(Modified - BeforeSave) > 0.5f
+		&& !bBadLoaded && !BadError.IsEmpty()
+		&& !bTruncLoaded && !TruncError.IsEmpty();
+
+	UE_LOG(LogCWTest, Display,
+		TEXT("CW_TEST T5 detalle: saved=%d loaded=%d badLoaded=%d truncLoaded=%d | ")
+		TEXT("antes=%.3f modificado=%.3f restaurado=%.3f | saveErr='%s' loadErr='%s' badErr='%s' truncErr='%s'"),
+		bSaved, bLoaded, bBadLoaded, bTruncLoaded,
+		BeforeSave, Modified, Restored,
+		*SaveError, *LoadError, *BadError, *TruncError);
+
+	// T-006: cambio de material y densidad.
+	const FVector Point6 = CenterA + FVector(1200.f, -1200.f, 0.f);
+	const bool bSetSoil = TerrainA->SetSoilTypeInArea(Point6, 600.f, ECWSoilType::Gravel);
+	const ECWSoilType Type6 = TerrainA->GetSoilTypeAtLocation(Point6);
+	const float Removed6 = TerrainA->DigAt(Point6, 120.f, 120.f, 1.f);
+	const float GravelDensity = CWSoil::GetDensityKgPerCubicMeter(ECWSoilType::Gravel);
+	const bool bT6 = bSetSoil
+		&& Type6 == ECWSoilType::Gravel
+		&& Removed6 > 0.5f
+		&& FMath::IsNearlyEqual(GravelDensity, 1800.f);
+
+	// F3.08: acopio con volumen y masa.
+	const float AddedPile = Stockpile->AddMaterial(5.f);
+	const float RemovedPile = Stockpile->RemoveMaterial(2.f);
+	const bool bStockpile = FMath::IsNearlyEqual(AddedPile, 5.f)
+		&& FMath::IsNearlyEqual(RemovedPile, 2.f)
+		&& FMath::IsNearlyEqual(Stockpile->GetVolumeM3(), 3.f)
+		&& FMath::IsNearlyEqual(Stockpile->GetMassKg(), 3.f * 1600.f, 1.f);
+
+	// F3.04: benchmark de memoria y tiempos.
+	const int64 MemoryA = TerrainA->GetApproxMemoryBytes();
+	const int64 MemoryTarget = MemoryA * 4; // extrapolacion 32x32 -> 64x64
+	const bool bBenchmark = MemoryTarget < 8 * 1024 * 1024
+		&& SaveMs < 1000.0
+		&& LoadMs < 1000.0
+		&& Elapsed3 < 5.0;
+
+	UE_LOG(LogCWTest, Display,
+		TEXT("CW_TEST: T1 cucharadas sum=%.2f m3 (%.2f..%.2f); T2 100 ops sum=%.2f m3 altura=%.1f cm; "
+		     "T3 1000 ops=%.0f ms conservacion=%.3f m3 chunks %d->%d; "
+		     "T4 excavado=%.2f depositado=%.2f final=%.2f; "
+		     "T5 guardado=%.1f ms carga=%.1f ms restaurado=%.2f; T6 material=%s densidad=%.0f; acopio=%.1f m3."),
+		Sum1, Min1, Max1, Sum2, Height2,
+		Elapsed3 * 1000.0, Conservation3, PendingBefore, PendingAfter,
+		Removed4, Deposited4, Final4,
+		SaveMs, LoadMs, Restored,
+		*CWSoil::GetSoilProperties(Type6).DisplayName, GravelDensity, Stockpile->GetVolumeM3());
+
+	UE_LOG(LogCWTest, Display,
+		TEXT("CW_TERRAIN_BENCHMARK: memoria 32x32=%.1f KB, extrapolada 64x64=%.1f KB, "
+		     "save=%.1f ms, load=%.1f ms, 1000 digs=%.1f ms (%.3f ms/op), rebuilds/tick=%d."),
+		MemoryA / 1024.0, MemoryTarget / 1024.0, SaveMs, LoadMs,
+		Elapsed3 * 1000.0, Elapsed3, TerrainA->MaxChunkRebuildsPerTick);
+
+	const bool bPass = bT1 && bT2 && bT3 && bT4 && bT5 && bT6 && bStockpile && bBenchmark;
+
+	if (bPass)
+	{
+		FinishTest(true, FString::Printf(
+			TEXT("terreno OK: T1 %.1f m3, T2 tope %.1f cm, T3 %.0f ms/1000 ops, T4 conserva %.2f m3, "
+			     "T5 guardado/carga y corrupcion, T6 grava, acopio %.1f m3"),
+			Sum1, Height2, Elapsed3 * 1000.0, Final4, Stockpile->GetVolumeM3()));
+	}
+	else
+	{
+		FinishTest(false, FString::Printf(
+			TEXT("terreno: fallo T1=%d T2=%d T3=%d T4=%d T5=%d T6=%d acopio=%d benchmark=%d"),
+			bT1, bT2, bT3, bT4, bT5, bT6, bStockpile, bBenchmark));
+	}
+}
+
 void ACWTestRunner::FinishTest(bool bPass, const FString& Summary)
 {
 	if (bFinished)
@@ -704,4 +960,30 @@ static FAutoConsoleCommandWithWorldAndArgs GCWTestTruck(
 			}
 
 			Runner->StartTruckDumpTest(false);
+		}));
+
+static FAutoConsoleCommandWithWorldAndArgs GCWTestTerrain(
+	TEXT("cw.Test.Terrain"),
+	TEXT("Ejecuta la bateria T-001..T-006 del terreno deformable (excavacion, volumen, guardado y materiales)."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda(
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World)
+			{
+				UE_LOG(LogCWTest, Error, TEXT("CW_TEST: comando sin mundo."));
+				return;
+			}
+
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ACWTestRunner* Runner = World->SpawnActor<ACWTestRunner>(
+				ACWTestRunner::StaticClass(), FTransform::Identity, Params);
+
+			if (!Runner)
+			{
+				UE_LOG(LogCWTest, Error, TEXT("CW_TEST: no se pudo crear el ejecutor de pruebas."));
+				return;
+			}
+
+			Runner->StartTerrainTest(false);
 		}));

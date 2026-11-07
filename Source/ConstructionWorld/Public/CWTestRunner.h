@@ -9,6 +9,8 @@ class ACWVehicleBase;
 class ACWExcavator;
 class ACWDumpTruck;
 class ACWDumpZone;
+class ACWTerrainField;
+class ACWStockpile;
 class APlayerController;
 
 /**
@@ -45,12 +47,17 @@ public:
 	/** Programa la prueba de carga/descarga del volquete (F2.10-F2.13). */
 	void StartTruckDumpTest(bool bExitWhenDone);
 
+	/** Programa la bateria de pruebas del terreno deformable (H2: T-001..T-006). */
+	void StartTerrainTest(bool bExitWhenDone);
+
 private:
 	void RunEnterExitTest();
 	void RunExcavatorStabilityTest();
 	void RunTruckDumpTest();
+	void RunTerrainTest();
 	bool SpawnExcavatorForTest();
 	bool SpawnTruckAndZoneForTest();
+	bool SpawnTerrainForTest();
 	bool EnsureActors();
 	bool ValidateCameraSetup(ACWPlayerCharacter* InCharacter, FString& OutError) const;
 	void FinishTest(bool bPass, const FString& Summary);
@@ -71,11 +78,21 @@ private:
 	TObjectPtr<ACWDumpZone> DumpZone;
 
 	UPROPERTY(Transient)
+	TObjectPtr<ACWTerrainField> TerrainA;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ACWTerrainField> TerrainB;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ACWStockpile> Stockpile;
+
+	UPROPERTY(Transient)
 	TObjectPtr<APlayerController> PlayerController;
 
 	FTimerHandle StartTimer;
 	FTimerHandle ExcavatorTimer;
 	FTimerHandle TruckTimer;
+	FTimerHandle TerrainTimer;
 
 	int32 PendingCycles = 0;
 	int32 InitialCharacterCount = 0;

@@ -2,6 +2,8 @@
 
 #include "CWDumpTruck.h"
 #include "CWLog.h"
+#include "CWTerrainField.h"
+#include "CWTerrainSubsystem.h"
 #include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
@@ -653,6 +655,7 @@ bool ACWExcavator::DigOrLoadTruck()
 	{
 		if (ACWDumpTruck* Truck = FindNearbyTruck())
 		{
+			Truck->SetLoadSoilType(BucketSoilType);
 			const float Moved = Truck->AddLoad(BucketLoadCubicMeters);
 			if (Moved > KINDA_SMALL_NUMBER)
 			{
@@ -664,9 +667,57 @@ bool ACWExcavator::DigOrLoadTruck()
 			}
 		}
 
+		// H2: si no hay camion, verter la cuchara en el terreno (conserva el volumen).
+		if (UWorld* World = GetWorld())
+		{
+			if (UCWTerrainSubsystem* Terrain = World->GetSubsystem<UCWTerrainSubsystem>())
+			{
+				const float Deposited = Terrain->DepositAt(
+					GetBucketTipLocation(), DepositRadiusCm, BucketLoadCubicMeters, BucketSoilType);
+
+				if (Deposited > KINDA_SMALL_NUMBER)
+				{
+					BucketLoadCubicMeters = FMath::Max(0.f, BucketLoadCubicMeters - Deposited);
+					UE_LOG(LogCWVehicle, Log,
+						TEXT("CWExcavator: vertidos %.2f m3 de %s en el terreno (cuchara: %.2f m3)."),
+						Deposited, *GetBucketSoilName(), BucketLoadCubicMeters);
+					return true;
+				}
+			}
+		}
+
 		UE_LOG(LogCWVehicle, Warning,
-			TEXT("CWExcavator: no hay camion al alcance para descargar la cuchara."));
+			TEXT("CWExcavator: no hay camion ni terreno al alcance para vaciar la cuchara."));
 		return false;
+	}
+
+	// H2: excavar de verdad en el terreno deformable.
+	if (UWorld* World = GetWorld())
+	{
+		if (UCWTerrainSubsystem* Terrain = World->GetSubsystem<UCWTerrainSubsystem>())
+		{
+			const FVector Tip = GetBucketTipLocation();
+			if (ACWTerrainField* Field = Terrain->FindTerrainAt(Tip))
+			{
+				const float SurfaceZ = Field->GetHeightAtLocation(Tip);
+				if (Tip.Z - SurfaceZ <= DigReachCm)
+				{
+					ECWSoilType SoilType = ECWSoilType::Earth;
+					const float Removed = Terrain->DigAt(
+						Tip, DigRadiusCm, MaxDigDepthCm, BucketCapacityCubicMeters, SoilType);
+
+					if (Removed > KINDA_SMALL_NUMBER)
+					{
+						BucketLoadCubicMeters = FMath::Min(Removed, BucketCapacityCubicMeters);
+						BucketSoilType = SoilType;
+						UE_LOG(LogCWVehicle, Log,
+							TEXT("CWExcavator: cuchara llena con %.2f m3 de %s del terreno."),
+							BucketLoadCubicMeters, *GetBucketSoilName());
+						return true;
+					}
+				}
+			}
+		}
 	}
 
 	if (!IsBucketTipNearGround())
@@ -677,13 +728,20 @@ bool ACWExcavator::DigOrLoadTruck()
 	}
 
 	BucketLoadCubicMeters = BucketCapacityCubicMeters;
+	BucketSoilType = ECWSoilType::Earth;
 	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: cuchara llena (%.2f m3)."), BucketLoadCubicMeters);
 	return true;
+}
+
+FString ACWExcavator::GetBucketSoilName() const
+{
+	return CWSoil::GetSoilProperties(BucketSoilType).DisplayName;
 }
 
 void ACWExcavator::SetBucketLoadForTest(float CubicMeters)
 {
 	BucketLoadCubicMeters = FMath::Clamp(CubicMeters, 0.f, BucketCapacityCubicMeters);
+	BucketSoilType = ECWSoilType::Earth;
 }
 
 ACWDumpTruck* ACWExcavator::FindNearbyTruck() const
@@ -765,7 +823,7 @@ float ACWExcavator::GetStabilityMarginCm(float SlopeDegrees, float SlopeDirectio
 	AddPoint(ArmMesh, ArmMassKg);
 	AddPoint(BucketMesh, BucketMassKg);
 
-	const float LoadMassKg = BucketLoadCubicMeters * MaterialDensityKgPerCubicMeter;
+	const float LoadMassKg = BucketLoadCubicMeters * CWSoil::GetDensityKgPerCubicMeter(BucketSoilType);
 	AddPoint(BucketTip, LoadMassKg);
 
 	float TotalMass = 0.f;

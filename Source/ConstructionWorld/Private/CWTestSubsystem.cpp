@@ -20,8 +20,9 @@ void UCWTestSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		&& Cycles > 0;
 	const bool bExcavatorTest = FParse::Param(FCommandLine::Get(), TEXT("CWTestExcavator"));
 	const bool bTruckTest = FParse::Param(FCommandLine::Get(), TEXT("CWTestTruck"));
+	const bool bTerrainTest = FParse::Param(FCommandLine::Get(), TEXT("CWTestTerrain"));
 
-	if (!bEnterExitTest && !bExcavatorTest && !bTruckTest)
+	if (!bEnterExitTest && !bExcavatorTest && !bTruckTest && !bTerrainTest)
 	{
 		return;
 	}
@@ -46,6 +47,10 @@ void UCWTestSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	else if (bTruckTest)
 	{
 		Runner->StartTruckDumpTest(bExitWhenDone);
+	}
+	else if (bTerrainTest)
+	{
+		Runner->StartTerrainTest(bExitWhenDone);
 	}
 	else
 	{

@@ -2,6 +2,7 @@
 
 #include "CWDumpZone.h"
 #include "CWLog.h"
+#include "CWTerrainSubsystem.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -285,6 +286,15 @@ float ACWDumpTruck::AddLoad(float CubicMeters)
 	const float Accepted = FMath::Min(CubicMeters, FreeSpace);
 	LoadCubicMeters += Accepted;
 
+	const float Overflow = CubicMeters - Accepted;
+	if (Overflow > KINDA_SMALL_NUMBER)
+	{
+		SpilledCubicMeters += Overflow;
+		UE_LOG(LogCWVehicle, Warning,
+			TEXT("CWDumpTruck: %.2f m3 no caben en la caja y se derraman (total derramado %.2f m3)."),
+			Overflow, SpilledCubicMeters);
+	}
+
 	if (Accepted > KINDA_SMALL_NUMBER)
 	{
 		UE_LOG(LogCWVehicle, Log,
@@ -358,20 +368,42 @@ bool ACWDumpTruck::TryDump()
 	}
 
 	ACWDumpZone* Zone = FindDumpZone();
-	if (!Zone)
+	const float Amount = LoadCubicMeters;
+
+	if (Zone)
 	{
-		UE_LOG(LogCWVehicle, Warning, TEXT("CWDumpTruck: no hay zona de descarga debajo del camion."));
+		if (Zone->DeliverLoad(Amount, this))
+		{
+			LoadCubicMeters = 0.f;
+			UE_LOG(LogCWVehicle, Log, TEXT("CWDumpTruck: descargados %.2f m3 en zona."), Amount);
+			return true;
+		}
+
 		return false;
 	}
 
-	const float Amount = LoadCubicMeters;
-	if (Zone->DeliverLoad(Amount, this))
+	// H2: sin zona, descargar directamente en el terreno (conserva el volumen).
+	if (UWorld* World = GetWorld())
 	{
-		LoadCubicMeters = 0.f;
-		UE_LOG(LogCWVehicle, Log, TEXT("CWDumpTruck: descargados %.2f m3."), Amount);
-		return true;
+		if (UCWTerrainSubsystem* Terrain = World->GetSubsystem<UCWTerrainSubsystem>())
+		{
+			const float Deposited = Terrain->DepositAt(
+				GetBedCenterLocation(), DumpRadiusCm, Amount, LoadSoilType);
+
+			if (Deposited > KINDA_SMALL_NUMBER)
+			{
+				LoadCubicMeters = FMath::Max(0.f, LoadCubicMeters - Deposited);
+				UE_LOG(LogCWVehicle, Log,
+					TEXT("CWDumpTruck: descargados %.2f m3 de %s en el terreno (resto %.2f m3)."),
+					Deposited, *CWSoil::GetSoilProperties(LoadSoilType).DisplayName,
+					LoadCubicMeters);
+				return true;
+			}
+		}
 	}
 
+	UE_LOG(LogCWVehicle, Warning,
+		TEXT("CWDumpTruck: no hay zona de descarga ni terreno debajo del camion."));
 	return false;
 }
 

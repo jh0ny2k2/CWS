@@ -5,6 +5,7 @@
 #include "CWInteractionComponent.h"
 #include "CWPerformanceSubsystem.h"
 #include "CWPlayerCharacter.h"
+#include "CWTerrainSubsystem.h"
 #include "CWUnits.h"
 #include "CWVehicleBase.h"
 #include "Engine/Canvas.h"
@@ -78,13 +79,30 @@ void ACWHUD::DrawHUD()
 				Excavator->GetFuelLiters());
 
 			const FString Line2 = FString::Printf(
-				TEXT("Cuchara: %.2f / %.1f m3 | Camara: %s | R modo | C camara | T excavar/cargar | G motor | F salir"),
+				TEXT("Cuchara: %.2f / %.1f m3 de %s | Camara: %s | R modo | C camara | T excavar/vaciar | G motor | F salir"),
 				Excavator->GetBucketLoadCubicMeters(),
 				Excavator->GetBucketCapacityCubicMeters(),
+				*Excavator->GetBucketSoilName(),
 				CameraName);
 
 			DrawText(Line1, FLinearColor(1.f, 0.85f, 0.f, 0.95f), 16.f, 40.f, nullptr, 0.9f, false);
 			DrawText(Line2, FLinearColor(1.f, 0.85f, 0.f, 0.85f), 16.f, 60.f, nullptr, 0.9f, false);
+
+			if (const UWorld* World = GetWorld())
+			{
+				if (const UCWTerrainSubsystem* Terrain = World->GetSubsystem<UCWTerrainSubsystem>())
+				{
+					if (Terrain->GetFieldCount() > 0)
+					{
+						const FString Line3 = FString::Printf(
+							TEXT("Terreno: %.1f m3 | %.0f kg | %d campo(s)"),
+							Terrain->GetTotalVolumeM3(),
+							Terrain->GetTotalMassKg(),
+							Terrain->GetFieldCount());
+						DrawText(Line3, FLinearColor(0.75f, 0.95f, 0.75f, 0.85f), 16.f, 80.f, nullptr, 0.85f, false);
+					}
+				}
+			}
 		}
 		else if (const ACWDumpTruck* Truck = Cast<ACWDumpTruck>(Pawn))
 		{

@@ -1,9 +1,12 @@
 #include "CWDumpZone.h"
 
 #include "CWLog.h"
+#include "CWStockpile.h"
+#include "CWTerrainSubsystem.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "UObject/ConstructorHelpers.h"
 
 ACWDumpZone::ACWDumpZone()
@@ -54,6 +57,32 @@ bool ACWDumpZone::DeliverLoad(float CubicMeters, AActor* Source)
 
 	const float Accepted = FMath::Min(CubicMeters, FreeSpace);
 	DeliveredCubicMeters += Accepted;
+
+	// H2: conservar el volumen depositandolo en el terreno o en un acopio.
+	if (LinkedStockpile)
+	{
+		const float Stored = LinkedStockpile->AddMaterial(Accepted);
+		DepositedIntoTerrainM3 += Stored;
+	}
+	else if (bDepositIntoTerrain)
+	{
+		if (const UWorld* World = GetWorld())
+		{
+			if (UCWTerrainSubsystem* Terrain = World->GetSubsystem<UCWTerrainSubsystem>())
+			{
+				const float Deposited = Terrain->DepositAt(
+					GetActorLocation(), DepositRadiusCm, Accepted, DepositSoilType);
+				DepositedIntoTerrainM3 += Deposited;
+
+				if (Deposited + KINDA_SMALL_NUMBER < Accepted)
+				{
+					UE_LOG(LogCWTerrain, Warning,
+						TEXT("CWDumpZone '%s': solo %.2f de %.2f m3 se depositaron en el terreno."),
+						*ZoneName, Deposited, Accepted);
+				}
+			}
+		}
+	}
 
 	UE_LOG(LogCW, Log,
 		TEXT("CWDumpZone '%s': recibidos %.2f m3 de %s (total %.2f / %.0f m3)."),

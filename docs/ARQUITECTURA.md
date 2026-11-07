@@ -1,4 +1,4 @@
-﻿# Arquitectura técnica — Construction World
+# Arquitectura técnica — Construction World
 
 Este documento fija las decisiones de ingeniería antes de escribir los sistemas grandes. Se irá actualizando; cualquier desviación debe justificarse aquí.
 
@@ -107,7 +107,7 @@ La hoja de ruta oficial es el Plan Maestro (`docs/Plan_Maestro_v1.0.pdf`). Sus h
 | H0. Fundaciones | Proyecto compila, escenario 3D, entrada, repositorio y CI base | **Completado** (UE 5.8 registrado, Blender 5.2.3, compilación limpia, TestLevel verificado, CI y métricas) |
 | H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | **Completado** (test automático `cw.Test.EnterExit 10` en PASS: 10 ciclos sin duplicados ni pérdida de controles) |
 | H1-B. Maquinaria | Excavadora y camión funcionales | **Completado** (excavadora articulada con orugas, hidráulica y estabilidad; volquete con ruedas por traza, caja y zona de descarga; `cw.Test.Excavator` y `cw.Test.Truck` en PASS) |
-| H2. Terreno | Prototipo de excavación validado (riesgo máximo) | Pendiente (riesgo principal) |
+| H2. Terreno | Prototipo de excavación validado (riesgo máximo) | **Completado** (heightfield por chunks `ACWTerrainField`, 4 tipos de suelo, integración con cuchara y volquete, persistencia con checksum, `cw.Test.Terrain` con 6 tests en PASS) |
 | H3. Contratos y vertical slice | Ciclo contractual completo + guardado (CWS-001) | Pendiente |
 | H4. Pulido gráfico y sonoro | Assets y pulido visual | Pendiente |
 | H5. Mundo abierto | Ciudad, carretera, streaming | Pendiente |

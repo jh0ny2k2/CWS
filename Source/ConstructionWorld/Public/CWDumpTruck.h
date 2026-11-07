@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "CWVehicleBase.h"
+#include "CWTerrainTypes.h"
 #include "CWDumpTruck.generated.h"
 
 class ACWDumpZone;
@@ -54,7 +55,20 @@ public:
 	}
 
 	UFUNCTION(BlueprintPure, Category = "CW|DumpTruck|Load")
-	float GetLoadWeightKg() const { return LoadCubicMeters * MaterialDensityKgPerCubicMeter; }
+	float GetLoadWeightKg() const { return LoadCubicMeters * CWSoil::GetDensityKgPerCubicMeter(LoadSoilType); }
+
+	/** m3 que no cupieron en la caja en la ultima carga (F3.10). */
+	UFUNCTION(BlueprintPure, Category = "CW|DumpTruck|Load")
+	float GetSpilledCubicMeters() const { return SpilledCubicMeters; }
+
+	UFUNCTION(BlueprintCallable, Category = "CW|DumpTruck|Load")
+	void ResetSpilled() { SpilledCubicMeters = 0.f; }
+
+	UFUNCTION(BlueprintPure, Category = "CW|DumpTruck|Load")
+	ECWSoilType GetLoadSoilType() const { return LoadSoilType; }
+
+	UFUNCTION(BlueprintCallable, Category = "CW|DumpTruck|Load")
+	void SetLoadSoilType(ECWSoilType NewSoilType) { LoadSoilType = NewSoilType; }
 
 	/** True si la caja esta bajada y aun cabe material. */
 	UFUNCTION(BlueprintPure, Category = "CW|DumpTruck|Load")
@@ -147,6 +161,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpTruck|Bed")
 	float MinDumpAngle = 35.f;
 
+	/** Radio del monton si se descarga directamente en el terreno (H2). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpTruck|Dump")
+	float DumpRadiusCm = 300.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Bed")
 	TObjectPtr<USceneComponent> BedPivot;
 
@@ -181,6 +199,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Load")
 	float LoadCubicMeters = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Load")
+	float SpilledCubicMeters = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Load")
+	ECWSoilType LoadSoilType = ECWSoilType::Earth;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Bed")
 	float CurrentBedAngle = 0.f;

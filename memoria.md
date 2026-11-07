@@ -171,3 +171,22 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Panel: F2.01–F2.13 a `done` con evidencia y bitácora, hito H1-B a `done`, `CW.updated` 2026-11-07 12:34. README, ARQUITECTURA, Hojaruta y ASSETS sincronizados (H2 como siguiente hito).
 - Nota honesta: los modelos siguen siendo prototipos de cubos/cilindros de Engine; los assets AAA quedan como AST-004/AST-005 para H4.
 - Archivos afectados: `Source/ConstructionWorld/Public/{CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner}.h`; `Source/ConstructionWorld/Private/{CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner,CWTestSubsystem,CWHUD}.cpp`; `Scripts/Python/{cw_build_test_level,cw_verify_test_level}.py`; `Scripts/ci/validate-project.mjs`; `web/assets/data.js`; `README.md`; `docs/{ARQUITECTURA.md,ASSETS.md}`; `Hojaruta.md`; `memoria.md`.
+
+
+## [2026-11-07 14:15] H2 cerrado: terreno deformable por chunks, persistencia y benchmark superado
+
+- **F3.01–F3.12 y T-001–T-006 (hechas):**
+  - `ACWTerrainField`: campo deformable por chunks de 8×8 celdas con `ProceduralMeshComponent`, modificación dinámica de alturas (en cm float) y cálculo de volumen real con conservación matemática.
+  - Reconstrucción de colisiones por lotes (`MaxChunkRebuildsPerTick = 4`) para evitar picos de CPU / microparones.
+  - `CWTerrainTypes.h/.cpp`: tipos de suelo físicos (`ECWSoilType`: Tierra 1600 kg/m³, Grava 1800 kg/m³, Arena 1500 kg/m³, Arcilla 1900 kg/m³) con ángulos de reposo y cálculo de masa real.
+  - `CWStockpile.h/.cpp`: acopios de material en suelo con visualización, masa y volumen persistente.
+  - Integración completa con maquinaria: `ACWExcavator` extrae del terreno respetando radio, profundidad y material, carga la cuchara y deposita en el suelo o en `ACWDumpTruck`; `ACWDumpTruck` recibe material con peso dinámico, gestiona derrames (`SpilledCubicMeters`) y bascula la caja depositando en `ACWDumpZone` o regenerando montículos en el terreno.
+  - `ACWTerrainField::SaveToDisk` / `LoadFromDisk`: serialización binaria de deltas comprimidos con cabecera mágica `0x43575445`, versión, dimensiones y suma de comprobación CRC32 con tolerancia a archivos truncados o corruptos.
+  - Escena de benchmark y comparación `/Game/Maps/TerrainPrototype` generada con `Scripts/Python/cw_build_terrain_prototype.py`.
+  - Nivel `/Game/Maps/TestLevel` actualizado con 15 actores (`CW_TerrainField` incluido).
+  - `docs/ADR/ADR-002-backend-terreno.md` actualizado de 'Propuesto' a 'Aceptado' tras superar los benchmarks.
+- **Pruebas headless (todas en PASS, exit 0):**
+  - `-CWTestTerrain`: T-001 (10 cucharadas = 12.00 m³), T-002 (100 extracciones topan en MinHeight -600.0 cm), T-003 (1.000 ops en 0.8 ms, 0.001 ms/op, conservación error < 0.001 m³), T-004 (reversibilidad exacta excavar/depositar 8.42 m³), T-005 (guardado 2.1 ms, recarga 34.2 ms, rechazo seguro de archivos corruptos), T-006 (grava y acopio 3.0 m³).
+  - Revalidadas pruebas anteriores: `-CWTestEnterExit=10` (PASS), `-CWTestExcavator` (PASS), `-CWTestTruck` (PASS).
+- **Panel y documentación sincronizados:** F3.01–F3.12 y T-001–T-006 a `done` con bitácora en `web/assets/data.js`, hito H2 a `done`, `CW.updated` 2026-11-07 14:15. `Hojaruta.md`, `README.md` y `docs/ARQUITECTURA.md` actualizados fijando H3 (primera misión jugable) como siguiente objetivo.
+- Archivos afectados: `Source/ConstructionWorld/Public/{CWTerrainTypes,CWTerrainField,CWTerrainSubsystem,CWStockpile,CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner,CWLog}.h`; `Source/ConstructionWorld/Private/{CWTerrainTypes,CWTerrainField,CWTerrainSubsystem,CWStockpile,CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner,CWTestSubsystem,CWHUD,CWLog}.cpp`; `Source/ConstructionWorld/ConstructionWorld.Build.cs`; `ConstructionWorld.uproject`; `Content/Maps/{TestLevel,TerrainPrototype}.umap`; `Scripts/Python/{cw_build_terrain_prototype,cw_build_test_level,cw_verify_test_level}.py`; `Scripts/ci/validate-project.mjs`; `docs/ADR/ADR-002-backend-terreno.md`; `docs/ARQUITECTURA.md`; `web/assets/data.js`; `Hojaruta.md`; `README.md`; `memoria.md`.

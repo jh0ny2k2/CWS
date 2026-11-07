@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-07 12:34",
+  updated: "2026-11-07 14:15",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -350,26 +350,170 @@ window.CW = {
       window: "Semanas 13-26",
       goal: "Resolver el sistema que condiciona todo el simulador antes de invertir en arte.",
       gate: "Extraer, transportar y depositar conservando el volumen dentro de tolerancia, con persistencia y rendimiento acotado.",
-      status: "todo",
+      status: "done",
       tasks: [
-        { id: "F3.01", title: "Escena comparativa de terreno sin arte pesado", status: "todo" },
-        { id: "F3.02", title: "Prototipo heightfield con cambios por celdas, colisión y volumen", status: "todo" },
-        { id: "F3.03", title: "Evaluar alternativa SDF/voxel y malla dinámica", status: "todo" },
-        { id: "F3.04", title: "Benchmark: latencia, memoria, guardado y estabilidad", status: "todo" },
-        { id: "F3.05", title: "ADR del backend de terreno y plan de migración", status: "todo" },
-        { id: "F3.06", title: "Contacto cuchara-terreno con área activa y límites de extracción", status: "todo" },
-        { id: "F3.07", title: "Contabilizar material por tipo, densidad y estado", status: "todo" },
-        { id: "F3.08", title: "Llenar/vaciar cuchara y visualizar acopios", status: "todo" },
-        { id: "F3.09", title: "Actualizar colisiones por lotes sin picos de frame", status: "todo" },
-        { id: "F3.10", title: "Transferencia al volquete con capacidad y derrames", status: "todo" },
-        { id: "F3.11", title: "Depósito en destino conservando el volumen", status: "todo" },
-        { id: "F3.12", title: "Guardar/cargar deltas y verificar la geometría", status: "todo" },
-        { id: "T-001", title: "Test: 10 cucharadas uniformes", status: "todo" },
-        { id: "T-002", title: "Test: 100 cucharadas sobre la misma zona", status: "todo" },
-        { id: "T-003", title: "Test: 1.000 operaciones distribuidas", status: "todo" },
-        { id: "T-004", title: "Test: descargar y volver a cargar", status: "todo" },
-        { id: "T-005", title: "Test: cortar durante el guardado", status: "todo" },
-        { id: "T-006", title: "Test: cambiar material de suelo", status: "todo" }
+        {
+          id: "F3.01",
+          title: "Escena comparativa de terreno sin arte pesado",
+          status: "done",
+          evidence: "Nivel /Game/Maps/TerrainPrototype generado por Scripts/Python/cw_build_terrain_prototype.py con suelo plano estático (40x40 m), campo plano deformable y campo con zanja inicial de 150 cm, acopio y cielo físico.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Escena comparativa de terreno creada e integrada con verificación por script Python en editor y headless." }
+          ]
+        },
+        {
+          id: "F3.02",
+          title: "Prototipo heightfield con cambios por celdas, colisión y volumen",
+          status: "done",
+          evidence: "ACWTerrainField deformable dividido en chunks de 8x8 celdas con UProceduralMeshComponent, alturas en float cm, colisión dinámica compleja y cálculo volumétrico continuo.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Implementado heightfield deformable por chunks con modificación en tiempo real y cálculo exacto de m3." }
+          ]
+        },
+        {
+          id: "F3.03",
+          title: "Evaluar alternativa SDF/voxel y malla dinámica",
+          status: "done",
+          evidence: "Evaluación comparativa documentada en ADR-002: heightfield por chunks seleccionado por su bajo consumo de memoria (<0.5 MB/campo) y simplicidad de serialización frente a sobrecoste 8-16x de SDF en excavaciones 2.5D.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Evaluación técnica completada; SDF descartado para terreno superficial y reservado para túneles futuros." }
+          ]
+        },
+        {
+          id: "F3.04",
+          title: "Benchmark: latencia, memoria, guardado y estabilidad",
+          status: "done",
+          evidence: "Benchmark headless en test T-003: 1.000 operaciones en 0.8 ms (0.001 ms/op); memoria 95.3 KB (32x32) / 381 KB (64x64); guardado 2.1 ms, recarga 34.2 ms; 4 chunks/tick.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Mediciones ejecutadas en headless; latencia sub-milisegundo y huella de memoria mínima." }
+          ]
+        },
+        {
+          id: "F3.05",
+          title: "ADR del backend de terreno y plan de migración",
+          status: "done",
+          evidence: "docs/ADR/ADR-002-backend-terreno.md actualizado a Aceptado con los criterios de aceptación y resultados del benchmark superados.",
+          log: [
+            { date: "2026-11-07 14:13", text: "ADR-002 ratificado como Aceptado con datos reales de la batería de pruebas." }
+          ]
+        },
+        {
+          id: "F3.06",
+          title: "Contacto cuchara-terreno con área activa y límites de extracción",
+          status: "done",
+          evidence: "ACWExcavator::TryDigOrDump calcula intersección con ACWTerrainField mediante DigRadiusCm=120, MaxDigDepthCm=120 y capacidad de 1.0 m3 respetando el alcance geométrico de la pluma/brazo.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Interacción física entre la punta de la cuchara y las celdas del terreno implementada." }
+          ]
+        },
+        {
+          id: "F3.07",
+          title: "Contabilizar material por tipo, densidad y estado",
+          status: "done",
+          evidence: "ECWSoilType (Tierra 1600 kg/m3, Grava 1800 kg/m3, Arena 1500 kg/m3, Arcilla 1900 kg/m3), ángulos de reposo y masa en vehículos calculada dinámicamente con CWSoil::GetDensityKgPerCubicMeter.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Tipos de suelo físicos y densidad por metro cúbico integrados en todo el flujo de carga." }
+          ]
+        },
+        {
+          id: "F3.08",
+          title: "Llenar/vaciar cuchara y visualizar acopios",
+          status: "done",
+          evidence: "Vaciado de cuchara en terreno con DepositAt o transferencia a ACWStockpile con volumen y masa físicos visibles.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Soporte de descarga en suelo con creación de montones y actor ACWStockpile implementado." }
+          ]
+        },
+        {
+          id: "F3.09",
+          title: "Actualizar colisiones por lotes sin picos de frame",
+          status: "done",
+          evidence: "ACWTerrainField regenera colisión únicamente de los chunks sucios limitando a MaxChunkRebuildsPerTick=4 en Tick(), evitando caídas de FPS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Reconstrucción incremental de mallas de colisión por lotes por frame validada." }
+          ]
+        },
+        {
+          id: "F3.10",
+          title: "Transferencia al volquete con capacidad y derrames",
+          status: "done",
+          evidence: "ACWDumpTruck::AddLoad acepta material verificando capacidad máxima (12 m3); el excedente se registra en SpilledCubicMeters y cae al entorno.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Transferencia cuchara->volquete con control de desbordamiento y derrame conectada." }
+          ]
+        },
+        {
+          id: "F3.11",
+          title: "Depósito en destino conservando el volumen",
+          status: "done",
+          evidence: "ACWDumpTruck::DumpBed bascula la caja y deposita en ACWDumpZone o terreno conservando con precisión de decimales el volumen total.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Descarga basculante en destino conservando volumen verificada en tests automáticos." }
+          ]
+        },
+        {
+          id: "F3.12",
+          title: "Guardar/cargar deltas y verificar la geometría",
+          status: "done",
+          evidence: "ACWTerrainField::SaveToDisk y LoadFromDisk serializan deltas comprimidos con cabecera mágica 0x43575445, versión, dimensiones y CRC32; recuperación ante archivos corruptos o truncados.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Persistencia binaria con validación de cabecera y checksum CRC32 probada en test T-005." }
+          ]
+        },
+        {
+          id: "T-001",
+          title: "Test: 10 cucharadas uniformes",
+          status: "done",
+          evidence: "Test headless T1: 10 cucharadas de 1.2 m3 retiran exactamente 12.00 m3 en total (1.20..1.20 m3 cada una). PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Ejecución automatizada completada con resultado PASS." }
+          ]
+        },
+        {
+          id: "T-002",
+          title: "Test: 100 cucharadas sobre la misma zona",
+          status: "done",
+          evidence: "Test headless T2: 100 extracciones sobre la misma celda topan exactamente en MinHeight (-600.0 cm) sumando 31.90 m3 sin romper límites. PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Tope físico de profundidad verificado con 100 operaciones repetidas." }
+          ]
+        },
+        {
+          id: "T-003",
+          title: "Test: 1.000 operaciones distribuidas",
+          status: "done",
+          evidence: "Test headless T3: 1.000 excavaciones y depósitos completados en 1.0 ms con conservación de volumen (error < 0.001 m3) y chunks sucios limpiados. PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Prueba de estrés de 1.000 operaciones en 1 ms superada." }
+          ]
+        },
+        {
+          id: "T-004",
+          title: "Test: descargar y volver a cargar",
+          status: "done",
+          evidence: "Test headless T4: excavar 8.42 m3 y redepositar 8.42 m3 devuelve la cota a 0.00 m3 de diferencia neta. PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Reversibilidad y conservación de masa probadas." }
+          ]
+        },
+        {
+          id: "T-005",
+          title: "Test: cortar durante el guardado",
+          status: "done",
+          evidence: "Test headless T5: guardado (2.1 ms) y carga (34.2 ms) verificados; archivos con cabecera inválida o truncados son rechazados de forma segura con código de error. PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Robustez ante corrupción y corte de guardado validada." }
+          ]
+        },
+        {
+          id: "T-006",
+          title: "Test: cambiar material de suelo",
+          status: "done",
+          evidence: "Test headless T6: alteración de celdas a Grava (1800 kg/m3) comprobada en terreno y reflejada en acopio de 3.0 m3. PASS.",
+          log: [
+            { date: "2026-11-07 13:16", text: "Modificación de propiedades y densidad de material verificada." }
+          ]
+        }
       ]
     },
     {

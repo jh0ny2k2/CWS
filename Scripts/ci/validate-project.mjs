@@ -66,7 +66,7 @@ for (const target of [
 
 // Modulo
 const buildCs = readText("Source/ConstructionWorld/ConstructionWorld.Build.cs");
-for (const dependency of ["Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput"]) {
+for (const dependency of ["Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "ProceduralMeshComponent"]) {
   if (buildCs && !buildCs.includes(`"${dependency}"`)) {
     fail(`ConstructionWorld.Build.cs: falta la dependencia ${dependency}`);
   }
@@ -86,6 +86,10 @@ const requiredPairs = [
   "CWPerformanceSubsystem",
   "CWTestRunner",
   "CWTestSubsystem",
+  "CWTerrainTypes",
+  "CWTerrainField",
+  "CWTerrainSubsystem",
+  "CWStockpile",
 ];
 
 for (const name of requiredPairs) {
