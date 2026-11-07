@@ -61,8 +61,9 @@ Criterios de aceptación del prototipo: 60 FPS en RTX 3060 con ajustes medios, d
 ## 5. Vehículos y maquinaria
 
 - `ACWVehicleBase` (Pawn) + componentes: motor, transmisión, hidráulica, orugas/ruedas, combustible, desgaste.
-- Excavadora: jerarquía de huesos del brazo controlada por objetivos (IK/servos hidráulicos aproximados) y cuchara con volumen de carga.
-- Camión: `ChaosVehicleMovementComponent` o simulación propia por ruedas; caja basculante con masa variable según carga.
+- `ACWExcavator` (H1-B): jerarquía articulada chasis → torreta → pluma → brazo → cuchara con límites angulares, seis cilindros hidráulicos recolocados entre anclajes, orugas diferenciales con agarre por traza, tres cámaras, motor/combustible y modelo estático de estabilidad (centro de masas vs. poligonal de apoyo). Prototipo con mallas de Engine; el asset AAA queda para H4.
+- `ACWDumpTruck` (H1-B): rig con cuatro ruedas y caja basculante, conducción por trazas de rueda (agarre, pendiente y peso), carga abstracta en m³ con densidad y descarga validada.
+- `ACWDumpZone`: trigger de descarga con capacidad y evento `OnLoadDelivered`; el progreso se calcula con material realmente entregado.
 - Cada máquina declara capacidades en un Data Asset (`Cuchara 1.2 m³`, `Carga máx. 8 t`), usadas por contratos e IA.
 - Cámara de cabina, instrumentación y entrada/salida mediante un único componente `CWInteractionComponent` en el personaje.
 
@@ -105,7 +106,7 @@ La hoja de ruta oficial es el Plan Maestro (`docs/Plan_Maestro_v1.0.pdf`). Sus h
 |---|---|---|
 | H0. Fundaciones | Proyecto compila, escenario 3D, entrada, repositorio y CI base | **Completado** (UE 5.8 registrado, Blender 5.2.3, compilación limpia, TestLevel verificado, CI y métricas) |
 | H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | **Completado** (test automático `cw.Test.EnterExit 10` en PASS: 10 ciclos sin duplicados ni pérdida de controles) |
-| H1-B. Maquinaria | Excavadora y camión funcionales | En curso (prototipo articulado de excavadora compilando) |
+| H1-B. Maquinaria | Excavadora y camión funcionales | **Completado** (excavadora articulada con orugas, hidráulica y estabilidad; volquete con ruedas por traza, caja y zona de descarga; `cw.Test.Excavator` y `cw.Test.Truck` en PASS) |
 | H2. Terreno | Prototipo de excavación validado (riesgo máximo) | Pendiente (riesgo principal) |
 | H3. Contratos y vertical slice | Ciclo contractual completo + guardado (CWS-001) | Pendiente |
 | H4. Pulido gráfico y sonoro | Assets y pulido visual | Pendiente |

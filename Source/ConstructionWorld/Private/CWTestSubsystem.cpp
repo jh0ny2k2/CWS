@@ -16,7 +16,12 @@ void UCWTestSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 
 	int32 Cycles = 0;
-	if (!FParse::Value(FCommandLine::Get(), TEXT("CWTestEnterExit="), Cycles) || Cycles <= 0)
+	const bool bEnterExitTest = FParse::Value(FCommandLine::Get(), TEXT("CWTestEnterExit="), Cycles)
+		&& Cycles > 0;
+	const bool bExcavatorTest = FParse::Param(FCommandLine::Get(), TEXT("CWTestExcavator"));
+	const bool bTruckTest = FParse::Param(FCommandLine::Get(), TEXT("CWTestTruck"));
+
+	if (!bEnterExitTest && !bExcavatorTest && !bTruckTest)
 	{
 		return;
 	}
@@ -34,5 +39,16 @@ void UCWTestSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		return;
 	}
 
-	Runner->StartEnterExitTest(Cycles, 1.5f, bExitWhenDone);
+	if (bEnterExitTest)
+	{
+		Runner->StartEnterExitTest(Cycles, 1.5f, bExitWhenDone);
+	}
+	else if (bTruckTest)
+	{
+		Runner->StartTruckDumpTest(bExitWhenDone);
+	}
+	else
+	{
+		Runner->StartExcavatorStabilityTest(bExitWhenDone);
+	}
 }

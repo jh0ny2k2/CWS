@@ -1,9 +1,9 @@
 # Construction World — Simulador de construcción 3D (UE 5.8)
 
-Estado actual: **H0 (Fundaciones) y H1-A (personaje y controles) completados**; **H1-B (maquinaria)** en curso.
-El objetivo inmediato es cerrar H1-B (excavadora y camión volquete funcionales) antes de pasar al terreno deformable de H2.
+Estado actual: **H0 (Fundaciones), H1-A (personaje y controles) y H1-B (maquinaria) completados**.
+El objetivo inmediato es el terreno deformable de H2 (riesgo máximo del proyecto).
 
-> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 10 actores, y el proyecto tiene CI, métricas de rendimiento y convenciones de unidades. El test automático de H1-A pasa en headless (`CW_TEST_RESULT: PASS cycles=10`). Falta empaquetar una build base.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 13 actores, y el proyecto tiene CI, métricas de rendimiento y convenciones de unidades. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`) y volquete (`-CWTestTruck`). Falta empaquetar una build base.
 
 ## Panel de seguimiento
 

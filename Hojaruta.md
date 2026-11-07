@@ -1,7 +1,7 @@
 Hoja de ruta — Construction World Simulator
 Plan de desarrollo de un simulador de construcción 3D fotorrealista · Unreal Engine 5.8
 
-> **Estado real (2026-11-07):** Fase 0 / H0 **completada** (UE 5.8 y Blender 5.2.3 instalados, proyecto compilando, TestLevel verificado, CI, métricas y convenciones) y H1-A **completado** (test automático de 10 ciclos entrar/salir en PASS). H1-B en curso. El seguimiento tarea a tarea vive en el panel: `web/index.html` + `web/kanban.html` (datos en `web/assets/data.js`). Este documento es el plan de referencia, no el estado vivo.
+> **Estado real (2026-11-07):** Fase 0 / H0 **completada** (UE 5.8 y Blender 5.2.3 instalados, proyecto compilando, TestLevel verificado, CI, métricas y convenciones), H1-A **completado** (test automático de 10 ciclos entrar/salir en PASS) y H1-B **completado** (excavadora y volquete operativos con pruebas headless en PASS). El siguiente hito es H2 (terreno deformable). El seguimiento tarea a tarea vive en el panel: `web/index.html` + `web/kanban.html` (datos en `web/assets/data.js`). Este documento es el plan de referencia, no el estado vivo.
 
 La idea es desarrollar un videojuego inspirado en Construction Simulator, pero con mayor profundidad en las físicas, la maquinaria, la construcción y el realismo gráfico.
 
@@ -12,7 +12,7 @@ Planificación
 
 
 
-Fase 0 y H1-A completados · H1-B en curso — seguimiento vivo en el panel web
+Fase 0, H1-A y H1-B completados · H2 (terreno) siguiente — seguimiento vivo en el panel web
 Fases
 10
 

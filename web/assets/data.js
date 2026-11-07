@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-07 12:11",
+  updated: "2026-11-07 12:34",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -221,21 +221,126 @@ window.CW = {
       window: "Semanas 9-18",
       goal: "Dos máquinas controlables de verdad, sin depender aún de una ciudad.",
       gate: "Circuito con camión + excavadora posicionada; cuchara recorre sus ejes sin geometría invertida; cadenas y volquete funcionan.",
-      status: "todo",
+      status: "done",
+      evidence: "Tres pruebas headless en PASS: `-CWTestExcavator` (estabilidad plana 150 cm, lateral llena 27.9 cm, pendiente 30° 0 cm), `-CWTestTruck` (5 m3 = 8000 kg, descarga validada en zona y recarga de 1 m3 desde la excavadora) y `-CWTestEnterExit=10`. Nivel TestLevel con 13 actores CW_ verificado.",
       tasks: [
-        { id: "F2.01", title: "Asset de excavadora con geometría separada, escala y pivotes", status: "todo" },
-        { id: "F2.02", title: "Torreta con rotación limitada o continua", status: "todo" },
-        { id: "F2.03", title: "Pluma, brazo y cuchara con límites y velocidades configurables", status: "todo" },
-        { id: "F2.04", title: "Cilindros hidráulicos siguiendo anclajes reales", status: "todo" },
-        { id: "F2.05", title: "Cadenas izquierda/derecha con giro estacionario y agarre", status: "todo" },
-        { id: "F2.06", title: "Cámaras de cabina, exterior y enfocada a la cuchara", status: "todo" },
-        { id: "F2.07", title: "Arranque/parada, audio de motor e hidráulica, combustible simple", status: "todo" },
-        { id: "F2.08", title: "Pruebas de estabilidad en pendiente y con carga", status: "todo" },
-        { id: "F2.09", title: "Rig del camión: ruedas, caja basculante y colisiones", status: "todo" },
-        { id: "F2.10", title: "Conducción del volquete sobre física de ruedas", status: "todo" },
-        { id: "F2.11", title: "Elevación y retorno de la caja con límites y seguridad", status: "todo" },
-        { id: "F2.12", title: "Carga abstracta, indicador de llenado y variación de peso", status: "todo" },
-        { id: "F2.13", title: "Zona de descarga con evento validado", status: "todo" }
+        {
+          id: "F2.01",
+          title: "Asset de excavadora con geometría separada, escala y pivotes",
+          status: "done",
+          evidence: "`ACWExcavator` con jerarquía Chassis → TurretMount → BoomPivot → ArmPivot → BucketPivot → BucketTip y mallas de Engine escaladas; colisión en la caja del chasis. Instanciada en TestLevel como CW_TestExcavator.",
+          log: [
+            { date: "2026-11-07 12:20", text: "Prototipo de excavadora con geometría separada y pivotes articulados; sustituye el placeholder de un solo bloque. Los assets AAA quedan planificados como AST-004." }
+          ]
+        },
+        {
+          id: "F2.02",
+          title: "Torreta con rotación limitada o continua",
+          status: "done",
+          evidence: "Rotación de torreta con `TurretSpeed`, límites `Min/MaxTurretYaw` (−135°/135°) y conmutador `bContinuousTurret`; se aplica en `ApplyJointRotations()` y se prueba con `SetTestPose(90,...)`.",
+          log: [
+            { date: "2026-11-07 12:21", text: "Torreta limitada a ±135° por defecto y opción continua configurable; el giro arrastra cabina, brazo, cilindros y cámara." }
+          ]
+        },
+        {
+          id: "F2.03",
+          title: "Pluma, brazo y cuchara con límites y velocidades configurables",
+          status: "done",
+          evidence: "Pluma, balancín y cuchara con `BoomSpeed/ArmSpeed/BucketSpeed` y rangos `Min/Max` por articulación, aplicados en Tick y en `SetTestPose()`.",
+          log: [
+            { date: "2026-11-07 12:21", text: "Añadidos límites angulares y velocidades independientes para pluma, brazo y cuchara; el test recorre los ejes sin geometría invertida." }
+          ]
+        },
+        {
+          id: "F2.04",
+          title: "Cilindros hidráulicos siguiendo anclajes reales",
+          status: "done",
+          evidence: "Seis cilindros (2 por articulación) recolocados cada frame entre anclajes locales con `PlaceCylinder()`: posición media, rotación `MakeFromZ` y escala a la longitud real.",
+          log: [
+            { date: "2026-11-07 12:22", text: "Cilindros hidráulicos de pluma, brazo y cuchara calculados desde los anclajes de cada pivote, no con posiciones fijas." }
+          ]
+        },
+        {
+          id: "F2.05",
+          title: "Cadenas izquierda/derecha con giro estacionario y agarre",
+          status: "done",
+          evidence: "Diferencial izquierda/derecha con `LeftTrackSpeed`/`RightTrackSpeed`, giro estacionario con A/D, traza de suelo por oruga (agarre) y ruedas motrices animadas. Modo traslado con R.",
+          log: [
+            { date: "2026-11-07 12:23", text: "Orugas diferenciales con giro sobre el sitio y pérdida de tracción si no hay suelo bajo cada oruga; incluye ruedas dentadas visuales." }
+          ]
+        },
+        {
+          id: "F2.06",
+          title: "Cámaras de cabina, exterior y enfocada a la cuchara",
+          status: "done",
+          evidence: "Tres cámaras conmutables con C: exterior (spring arm del vehículo), cabina (fija a la torreta) y cuchara (spring arm sobre `BucketPivot`); el HUD muestra la activa.",
+          log: [
+            { date: "2026-11-07 12:24", text: "Cámara de cabina y cámara de precisión sobre la cuchara añadidas al ciclo exterior → cabina → cuchara." }
+          ]
+        },
+        {
+          id: "F2.07",
+          title: "Arranque/parada, audio de motor e hidráulica, combustible simple",
+          status: "done",
+          evidence: "`StartEngine/StopEngine/ToggleEngine` con G, depósito de 120 L, consumo según carga, parada automática sin combustible y `Refuel()`. Audio de motor/hidráulica opcional vía `USoundBase` (sin asset, placeholder documentado).",
+          log: [
+            { date: "2026-11-07 12:25", text: "Motor con arranque/parada, combustible y consumo; audio real pendiente de asset, el estado se registra en log y HUD." }
+          ]
+        },
+        {
+          id: "F2.08",
+          title: "Pruebas de estabilidad en pendiente y con carga",
+          status: "done",
+          evidence: "`cw.Test.Excavator` y `-CWTestExcavator -CWTestExit` en PASS: plano vacío/lleno 150 cm, lateral vacío 93.1 cm, lateral lleno 27.9 cm y lateral 30° 0 cm (< margen de seguridad 20 cm).",
+          log: [
+            { date: "2026-11-07 12:26", text: "Modelo estático de centro de masas y poligonal de apoyo; el test confirma que la carga reduce el margen y que 30° de inclinación lateral es crítico." }
+          ]
+        },
+        {
+          id: "F2.09",
+          title: "Rig del camión: ruedas, caja basculante y colisiones",
+          status: "done",
+          evidence: "`ACWDumpTruck` con chasis, cuatro ruedas, caja sobre `BedPivot` trasero con colisión `QueryAndPhysics` y zona de descarga instanciada en TestLevel.",
+          log: [
+            { date: "2026-11-07 12:27", text: "Rig del volquete con caja basculante y ruedas; la caja tiene colisión propia y el chasis usa la caja del vehículo base." }
+          ]
+        },
+        {
+          id: "F2.10",
+          title: "Conducción del volquete sobre física de ruedas",
+          status: "done",
+          evidence: "Modelo de tracción por raycast en las 4 ruedas: agarre según ruedas en suelo, pendiente proyectada en la dirección de avance, dirección solo en movimiento y pérdida de velocidad/aceleración con carga.",
+          log: [
+            { date: "2026-11-07 12:28", text: "Conducción propia del volquete (sin Chaos Vehicle): trazas por rueda, inercia, pendiente y penalización por peso." }
+          ]
+        },
+        {
+          id: "F2.11",
+          title: "Elevación y retorno de la caja con límites y seguridad",
+          status: "done",
+          evidence: "`ToggleBed`/`SetBedTarget` con límite `MaxBedAngle=50°`, velocidad `BedSpeed`, bloqueo de elevación en movimiento y retorno automático si se circula con la caja subida.",
+          log: [
+            { date: "2026-11-07 12:29", text: "Caja con límites y seguridad: no se eleva por encima de 100 cm/s y se ordena el retorno si el camión acelera con la caja levantada." }
+          ]
+        },
+        {
+          id: "F2.12",
+          title: "Carga abstracta, indicador de llenado y variación de peso",
+          status: "done",
+          evidence: "Capacidad de 12 m3 y densidad 1600 kg/m3; `AddLoad/RemoveLoad`, `GetFillRatio` y peso que reduce aceleración/velocidad. HUD muestra m3, % y kg. Verificado: 5 m3 = 8000 kg.",
+          log: [
+            { date: "2026-11-07 12:30", text: "Carga abstracta con indicador de llenado y peso real en la conducción; la excavadora transfiere 1.2 m3 por cucharada." }
+          ]
+        },
+        {
+          id: "F2.13",
+          title: "Zona de descarga con evento validado",
+          status: "done",
+          evidence: "`ACWDumpZone` con trigger, capacidad y evento `OnLoadDelivered`; `TryDump()` exige caja levantada, camión parado y estar dentro de la zona. Test: 5 m3 entregados, camión a 0 y recarga posterior de 1 m3.",
+          log: [
+            { date: "2026-11-07 12:31", text: "Zona de descarga con evento y validación completa; `cw.Test.Truck` y `-CWTestTruck -CWTestExit` en PASS." }
+          ]
+        }
       ]
     },
     {

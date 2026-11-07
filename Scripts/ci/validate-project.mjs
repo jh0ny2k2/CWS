@@ -78,6 +78,8 @@ const requiredPairs = [
   "CWPlayerCharacter",
   "CWVehicleBase",
   "CWExcavator",
+  "CWDumpTruck",
+  "CWDumpZone",
   "CWInteractionComponent",
   "CWHUD",
   "CWLog",

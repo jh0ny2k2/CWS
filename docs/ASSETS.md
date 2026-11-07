@@ -30,7 +30,7 @@ Resumen actual (detalle en `docs/assets_manifest.json`):
 | ID | Asset | Implementación | Licencia |
 |---|---|---|---|
 | AST-001 | Excavadora de cadenas | Jerarquía de cubos de `/Engine/BasicShapes/Cube` en `ACWExcavator` | Contenido de Unreal Engine (Epic Games) |
-| AST-002 | Camión volquete | `ACWVehicleBase` con cubo placeholder | Contenido de Unreal Engine (Epic Games) |
+| AST-002 | Camión volquete | `ACWDumpTruck` con cubos y cilindros de `/Engine/BasicShapes` (chasis, ruedas y caja basculante) | Contenido de Unreal Engine (Epic Games) |
 | AST-003 | Operario | Cubo placeholder de `ACWPlayerCharacter` | Contenido de Unreal Engine (Epic Games) |
 
 Los tres son **provisionales**: sirven para validar física, controles y jerarquías, no para el resultado visual final.
@@ -39,8 +39,8 @@ Los tres son **provisionales**: sirven para validar física, controles y jerarqu
 
 | ID | Asset | Prioridad | Fuente recomendada | Licencia prevista |
 |---|---|---|---|---|
-| AST-004 | Excavadora AAA con huesos/pivotes | Alta (H1-B/H4) | Fab (Unreal Marketplace) | Fab Standard License |
-| AST-005 | Camión volquete AAA | Alta (H1-B/H4) | Fab | Fab Standard License |
+| AST-004 | Excavadora AAA con huesos/pivotes | Alta (H4; prototipo H1-B ya operativo) | Fab (Unreal Marketplace) | Fab Standard License |
+| AST-005 | Camión volquete AAA | Alta (H4; prototipo H1-B ya operativo) | Fab | Fab Standard License |
 | AST-006 | Operario riggeado con animaciones | Alta (H4) | Fab / Mixamo (personaje) | Fab Standard / Mixamo terms |
 | AST-007 | Tierra, grava y arena (PBR) | Alta (H2) | Quixel Megascans (Fab) | Fab/Megascans License |
 | AST-008 | Asfalto y hormigón (PBR) | Media (H5) | Quixel Megascans / AmbientCG | Fab / CC0 |

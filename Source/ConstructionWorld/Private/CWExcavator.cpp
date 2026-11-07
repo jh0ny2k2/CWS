@@ -1,18 +1,23 @@
 #include "CWExcavator.h"
 
+#include "CWDumpTruck.h"
 #include "CWLog.h"
 #include "Camera/CameraComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
 #include "InputActionValue.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
 ACWExcavator::ACWExcavator()
@@ -25,6 +30,49 @@ ACWExcavator::ACWExcavator()
 	BodyMesh->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
 	BodyMesh->SetRelativeScale3D(FVector(5.2f, 3.f, 1.4f));
 
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+
+	// Orugas izquierda/derecha (F2.05): dos cajas largas bajo el chasis.
+	TrackLeftMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrackLeftMesh"));
+	TrackLeftMesh->SetupAttachment(CollisionBox);
+	TrackLeftMesh->SetRelativeLocation(FVector(0.f, -110.f, -45.f));
+	TrackLeftMesh->SetRelativeScale3D(FVector(5.2f, 0.8f, 0.5f));
+	TrackLeftMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	TrackRightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrackRightMesh"));
+	TrackRightMesh->SetupAttachment(CollisionBox);
+	TrackRightMesh->SetRelativeLocation(FVector(0.f, 110.f, -45.f));
+	TrackRightMesh->SetRelativeScale3D(FVector(5.2f, 0.8f, 0.5f));
+	TrackRightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	if (CubeMesh.Succeeded())
+	{
+		TrackLeftMesh->SetStaticMesh(CubeMesh.Object);
+		TrackRightMesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	// Ruedas motrices visibles: giran con la velocidad de cada oruga.
+	auto CreateSprocket = [this](const TCHAR* Name, const FVector& Location)
+	{
+		UStaticMeshComponent* Sprocket = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Sprocket->SetupAttachment(CollisionBox);
+		Sprocket->SetRelativeLocation(Location);
+		Sprocket->SetRelativeRotation(FRotator(0.f, 0.f, 90.f));
+		Sprocket->SetRelativeScale3D(FVector(0.6f, 0.6f, 0.6f));
+		Sprocket->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (CylinderMesh.Succeeded())
+		{
+			Sprocket->SetStaticMesh(CylinderMesh.Object);
+		}
+		return Sprocket;
+	};
+
+	SprocketLeftFront = CreateSprocket(TEXT("SprocketLeftFront"), FVector(220.f, -110.f, -45.f));
+	SprocketLeftRear = CreateSprocket(TEXT("SprocketLeftRear"), FVector(-220.f, -110.f, -45.f));
+	SprocketRightFront = CreateSprocket(TEXT("SprocketRightFront"), FVector(220.f, 110.f, -45.f));
+	SprocketRightRear = CreateSprocket(TEXT("SprocketRightRear"), FVector(-220.f, 110.f, -45.f));
+
 	// Torreta: gira sobre Z y arrastra cabina y brazo.
 	TurretMount = CreateDefaultSubobject<USceneComponent>(TEXT("TurretMount"));
 	TurretMount->SetupAttachment(CollisionBox);
@@ -35,8 +83,6 @@ ACWExcavator::ACWExcavator()
 	TurretMesh->SetRelativeLocation(FVector(0.f, 0.f, 70.f));
 	TurretMesh->SetRelativeScale3D(FVector(2.2f, 2.2f, 1.6f));
 	TurretMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())
 	{
 		TurretMesh->SetStaticMesh(CubeMesh.Object);
@@ -99,6 +145,27 @@ ACWExcavator::ACWExcavator()
 	BucketTip->SetupAttachment(BucketPivot);
 	BucketTip->SetRelativeLocation(FVector(90.f, 0.f, -60.f));
 
+	// Cilindros hidraulicos (F2.04): se recolocan cada frame entre sus anclajes.
+	auto CreateCylinder = [this](const TCHAR* Name)
+	{
+		UStaticMeshComponent* Cylinder = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Cylinder->SetupAttachment(CollisionBox);
+		Cylinder->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Cylinder->SetRelativeScale3D(FVector(0.16f, 0.16f, 1.f));
+		if (CylinderMesh.Succeeded())
+		{
+			Cylinder->SetStaticMesh(CylinderMesh.Object);
+		}
+		return Cylinder;
+	};
+
+	BoomCylinderLeft = CreateCylinder(TEXT("BoomCylinderLeft"));
+	BoomCylinderRight = CreateCylinder(TEXT("BoomCylinderRight"));
+	ArmCylinderLeft = CreateCylinder(TEXT("ArmCylinderLeft"));
+	ArmCylinderRight = CreateCylinder(TEXT("ArmCylinderRight"));
+	BucketCylinderLeft = CreateCylinder(TEXT("BucketCylinderLeft"));
+	BucketCylinderRight = CreateCylinder(TEXT("BucketCylinderRight"));
+
 	// Camara de precision enfocada a la cuchara (F2.06).
 	BucketBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("BucketBoom"));
 	BucketBoom->SetupAttachment(BucketPivot);
@@ -112,11 +179,28 @@ ACWExcavator::ACWExcavator()
 	BucketCamera->bUsePawnControlRotation = false;
 	BucketCamera->bAutoActivate = false;
 
+	// Audio placeholder (F2.07): sin asset asignado no suena, pero el estado
+	// de motor/hidraulica se registra en log y se expone al HUD.
+	EngineAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
+	EngineAudio->SetupAttachment(CollisionBox);
+	EngineAudio->bAutoActivate = false;
+
+	HydraulicAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("HydraulicAudio"));
+	HydraulicAudio->SetupAttachment(TurretMount);
+	HydraulicAudio->bAutoActivate = false;
+
 	// Estado inicial coherente con los angulos declarados en la cabecera.
-	TurretMount->SetRelativeRotation(FRotator(0.f, CurrentTurretYaw, 0.f));
-	BoomPivot->SetRelativeRotation(FRotator(CurrentBoomPitch, 0.f, 0.f));
-	ArmPivot->SetRelativeRotation(FRotator(CurrentArmPitch, 0.f, 0.f));
-	BucketPivot->SetRelativeRotation(FRotator(CurrentBucketPitch, 0.f, 0.f));
+	ApplyJointRotations();
+}
+
+void ACWExcavator::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// La maquina arranca con el motor en marcha y deposito lleno.
+	FuelLiters = FMath::Clamp(FuelLiters, 0.f, MaxFuelLiters);
+	StartEngine();
+	UpdateHydraulics();
 }
 
 void ACWExcavator::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -139,6 +223,8 @@ void ACWExcavator::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	EnhancedInput->BindAction(BucketAction, ETriggerEvent::Triggered, this, &ACWExcavator::DigBucketInput);
 	EnhancedInput->BindAction(ToggleModeAction, ETriggerEvent::Started, this, &ACWExcavator::ToggleModeInput);
 	EnhancedInput->BindAction(CycleCameraAction, ETriggerEvent::Started, this, &ACWExcavator::CycleCameraInput);
+	EnhancedInput->BindAction(EngineAction, ETriggerEvent::Started, this, &ACWExcavator::EngineInput);
+	EnhancedInput->BindAction(DigCycleAction, ETriggerEvent::Started, this, &ACWExcavator::DigCycleInput);
 }
 
 void ACWExcavator::EnsureInputObjects()
@@ -169,6 +255,12 @@ void ACWExcavator::EnsureInputObjects()
 	CycleCameraAction = NewObject<UInputAction>(this, TEXT("IA_ExcavatorCamera"));
 	CycleCameraAction->ValueType = EInputActionValueType::Boolean;
 
+	EngineAction = NewObject<UInputAction>(this, TEXT("IA_ExcavatorEngine"));
+	EngineAction->ValueType = EInputActionValueType::Boolean;
+
+	DigCycleAction = NewObject<UInputAction>(this, TEXT("IA_ExcavatorDigCycle"));
+	DigCycleAction->ValueType = EInputActionValueType::Boolean;
+
 	// Mapeos de excavacion. En modo traslado se reutilizan W/S/A/D para las orugas.
 	VehicleMappingContext->MapKey(BoomAction, EKeys::W);
 	FEnhancedActionKeyMapping& BoomDownMap = VehicleMappingContext->MapKey(BoomAction, EKeys::S);
@@ -188,30 +280,46 @@ void ACWExcavator::EnsureInputObjects()
 
 	VehicleMappingContext->MapKey(ToggleModeAction, EKeys::R);
 	VehicleMappingContext->MapKey(CycleCameraAction, EKeys::C);
+	VehicleMappingContext->MapKey(EngineAction, EKeys::G);
+	VehicleMappingContext->MapKey(DigCycleAction, EKeys::T);
 }
 
 void ACWExcavator::Tick(float DeltaSeconds)
 {
-	if (!Driver)
+	UpdateEngine(DeltaSeconds);
+
+	if (!Driver || !bEngineRunning)
 	{
 		TargetTurretInput = 0.f;
 		TargetBoomInput = 0.f;
 		TargetArmInput = 0.f;
 		TargetBucketInput = 0.f;
+		DriveInput = FVector2D::ZeroVector;
+		LeftTrackSpeed = 0.f;
+		RightTrackSpeed = 0.f;
+		ApplyJointRotations();
+		UpdateHydraulics();
 		return;
 	}
 
 	if (ControlMode == ECWExcavatorControlMode::Drive)
 	{
-		// Traslado con orugas: comportamiento del vehiculo base.
-		Super::Tick(DeltaSeconds);
+		// Traslado con orugas: diferencial izquierda/derecha (F2.05).
+		UpdateTracks(DeltaSeconds);
+		DriveInput = FVector2D::ZeroVector;
 	}
 	else
 	{
 		// Excavacion: la base no debe moverse aunque se pulsen W/S/A/D.
 		DriveInput = FVector2D::ZeroVector;
+		LeftTrackSpeed = 0.f;
+		RightTrackSpeed = 0.f;
 
 		CurrentTurretYaw += TargetTurretInput * TurretSpeed * DeltaSeconds;
+		if (!bContinuousTurret)
+		{
+			CurrentTurretYaw = FMath::Clamp(CurrentTurretYaw, MinTurretYaw, MaxTurretYaw);
+		}
 		CurrentBoomPitch = FMath::Clamp(
 			CurrentBoomPitch + TargetBoomInput * BoomSpeed * DeltaSeconds,
 			MinBoomPitch, MaxBoomPitch);
@@ -223,15 +331,202 @@ void ACWExcavator::Tick(float DeltaSeconds)
 			MinBucketPitch, MaxBucketPitch);
 	}
 
-	TurretMount->SetRelativeRotation(FRotator(0.f, CurrentTurretYaw, 0.f));
-	BoomPivot->SetRelativeRotation(FRotator(CurrentBoomPitch, 0.f, 0.f));
-	ArmPivot->SetRelativeRotation(FRotator(CurrentArmPitch, 0.f, 0.f));
-	BucketPivot->SetRelativeRotation(FRotator(CurrentBucketPitch, 0.f, 0.f));
+	ApplyJointRotations();
+	UpdateHydraulics();
+
+	// Audio hidraulico placeholder: suena solo si hay asset y movimiento de brazo.
+	const bool bHydraulicMoving = !FMath::IsNearlyZero(TargetBoomInput)
+		|| !FMath::IsNearlyZero(TargetArmInput)
+		|| !FMath::IsNearlyZero(TargetBucketInput)
+		|| !FMath::IsNearlyZero(TargetTurretInput);
+
+	if (HydraulicSound && HydraulicAudio)
+	{
+		if (bHydraulicMoving && !bHydraulicAudioActive)
+		{
+			HydraulicAudio->SetSound(HydraulicSound);
+			HydraulicAudio->Play();
+			bHydraulicAudioActive = true;
+		}
+		else if (!bHydraulicMoving && bHydraulicAudioActive)
+		{
+			HydraulicAudio->Stop();
+			bHydraulicAudioActive = false;
+		}
+	}
 
 	TargetTurretInput = 0.f;
 	TargetBoomInput = 0.f;
 	TargetArmInput = 0.f;
 	TargetBucketInput = 0.f;
+}
+
+void ACWExcavator::UpdateEngine(float DeltaSeconds)
+{
+	if (!bEngineRunning)
+	{
+		return;
+	}
+
+	// Consumo: ralenti ~35 %, plena carga cuando hay demanda de movimiento.
+	const float Demand = FMath::Clamp(
+		FMath::Abs(DriveInput.X) + FMath::Abs(DriveInput.Y) * 0.5f
+		+ (FMath::Abs(TargetBoomInput) + FMath::Abs(TargetArmInput) + FMath::Abs(TargetBucketInput)) * 0.3f,
+		0.f, 1.f);
+	const float LoadFactor = 0.35f + 0.65f * Demand;
+
+	FuelLiters -= FuelConsumptionLitersPerHour * LoadFactor * (DeltaSeconds / 3600.f);
+
+	if (FuelLiters <= 0.f)
+	{
+		FuelLiters = 0.f;
+		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: sin combustible; el motor se detiene."));
+		StopEngine();
+	}
+}
+
+void ACWExcavator::UpdateTracks(float DeltaSeconds)
+{
+	const float Forward = DriveInput.X;
+	const float Turn = DriveInput.Y;
+
+	// Diferencial: A/D giran en sentido contrario -> giro estacionario.
+	float Left = FMath::Clamp(Forward - Turn, -1.f, 1.f);
+	float Right = FMath::Clamp(Forward + Turn, -1.f, 1.f);
+
+	// "Agarre": cada oruga solo transmite fuerza si tiene suelo debajo.
+	const UWorld* World = GetWorld();
+	auto HasGroundUnder = [World, this](const FVector& Location) -> bool
+	{
+		if (!World)
+		{
+			return false;
+		}
+		FHitResult Hit;
+		FCollisionQueryParams Params(TEXT("CWTrackGround"), false, this);
+		const FVector Start = Location + FVector(0.f, 0.f, 80.f);
+		const FVector End = Location - FVector(0.f, 0.f, 160.f);
+		return World->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic, Params);
+	};
+
+	const bool bLeftGrounded = HasGroundUnder(TrackLeftMesh->GetComponentLocation());
+	const bool bRightGrounded = HasGroundUnder(TrackRightMesh->GetComponentLocation());
+
+	const float Grip = (bLeftGrounded ? 0.5f : 0.f) + (bRightGrounded ? 0.5f : 0.f);
+	if (Grip <= 0.f)
+	{
+		LeftTrackSpeed = 0.f;
+		RightTrackSpeed = 0.f;
+		return;
+	}
+
+	Left *= Grip;
+	Right *= Grip;
+
+	LeftTrackSpeed = Left * MaxDriveSpeed;
+	RightTrackSpeed = Right * MaxDriveSpeed;
+
+	const float LinearSpeed = (LeftTrackSpeed + RightTrackSpeed) * 0.5f;
+
+	// Giro diferencial: velocidad angular = (v_dcha - v_izda) / ancho de via.
+	const float YawDegPerSecond =
+		(RightTrackSpeed - LeftTrackSpeed) / FMath::Max(1.f, TrackHalfWidthCm * 2.f)
+		* FMath::RadiansToDegrees(1.f);
+
+	if (!FMath::IsNearlyZero(YawDegPerSecond))
+	{
+		AddActorLocalRotation(FRotator(0.f, YawDegPerSecond * DeltaSeconds, 0.f));
+	}
+
+	if (!FMath::IsNearlyZero(LinearSpeed))
+	{
+		FHitResult Hit;
+		AddActorWorldOffset(GetActorForwardVector() * LinearSpeed * DeltaSeconds, true, &Hit);
+		if (Hit.bBlockingHit)
+		{
+			LeftTrackSpeed = 0.f;
+			RightTrackSpeed = 0.f;
+		}
+	}
+
+	// Animacion de las ruedas motrices (visual).
+	SprocketAngleDeg = FMath::Fmod(SprocketAngleDeg + LinearSpeed * DeltaSeconds * 0.45f, 360.f);
+	const FRotator WheelRot(0.f, 0.f, 90.f + SprocketAngleDeg);
+
+	for (UStaticMeshComponent* Sprocket : {
+		SprocketLeftFront.Get(), SprocketLeftRear.Get(),
+		SprocketRightFront.Get(), SprocketRightRear.Get() })
+	{
+		if (Sprocket)
+		{
+			Sprocket->SetRelativeRotation(WheelRot);
+		}
+	}
+}
+
+void ACWExcavator::ApplyJointRotations()
+{
+	if (!TurretMount || !BoomPivot || !ArmPivot || !BucketPivot)
+	{
+		return;
+	}
+
+	TurretMount->SetRelativeRotation(FRotator(0.f, CurrentTurretYaw, 0.f));
+	BoomPivot->SetRelativeRotation(FRotator(CurrentBoomPitch, 0.f, 0.f));
+	ArmPivot->SetRelativeRotation(FRotator(CurrentArmPitch, 0.f, 0.f));
+	BucketPivot->SetRelativeRotation(FRotator(CurrentBucketPitch, 0.f, 0.f));
+}
+
+void ACWExcavator::UpdateHydraulics()
+{
+	if (!TurretMount || !BoomPivot || !ArmPivot || !BucketPivot)
+	{
+		return;
+	}
+
+	// Anclajes reales de cada cilindro, en coordenadas locales del componente
+	// que los soporta. Se transforman a mundo para colocar el cilindro.
+	const FTransform TurretXf = TurretMount->GetComponentTransform();
+	const FTransform BoomXf = BoomPivot->GetComponentTransform();
+	const FTransform ArmXf = ArmPivot->GetComponentTransform();
+	const FTransform BucketXf = BucketPivot->GetComponentTransform();
+
+	for (const float Side : { -1.f, 1.f })
+	{
+		const FVector BoomA = TurretXf.TransformPosition(FVector(40.f, Side * 55.f, 40.f));
+		const FVector BoomB = BoomXf.TransformPosition(FVector(160.f, Side * 55.f, -30.f));
+		PlaceCylinder(Side < 0.f ? BoomCylinderLeft.Get() : BoomCylinderRight.Get(), BoomA, BoomB, 0.17f);
+
+		const FVector ArmA = BoomXf.TransformPosition(FVector(250.f, Side * 45.f, -15.f));
+		const FVector ArmB = ArmXf.TransformPosition(FVector(80.f, Side * 45.f, 0.f));
+		PlaceCylinder(Side < 0.f ? ArmCylinderLeft.Get() : ArmCylinderRight.Get(), ArmA, ArmB, 0.15f);
+
+		const FVector BucketA = ArmXf.TransformPosition(FVector(190.f, Side * 40.f, 0.f));
+		const FVector BucketB = BucketXf.TransformPosition(FVector(50.f, Side * 40.f, 0.f));
+		PlaceCylinder(Side < 0.f ? BucketCylinderLeft.Get() : BucketCylinderRight.Get(), BucketA, BucketB, 0.13f);
+	}
+}
+
+void ACWExcavator::PlaceCylinder(UStaticMeshComponent* Cylinder, const FVector& WorldA,
+	const FVector& WorldB, float RadiusScale) const
+{
+	if (!Cylinder)
+	{
+		return;
+	}
+
+	const FVector Delta = WorldB - WorldA;
+	const float Length = Delta.Size();
+	if (Length < KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const FVector MidPoint = (WorldA + WorldB) * 0.5f;
+	const FRotator Rotation = FRotationMatrix::MakeFromZ(Delta).Rotator();
+
+	Cylinder->SetWorldLocationAndRotation(MidPoint, Rotation);
+	Cylinder->SetWorldScale3D(FVector(RadiusScale, RadiusScale, Length / 100.f));
 }
 
 void ACWExcavator::ToggleControlMode()
@@ -245,6 +540,8 @@ void ACWExcavator::ToggleControlMode()
 	TargetBoomInput = 0.f;
 	TargetArmInput = 0.f;
 	TargetBucketInput = 0.f;
+	LeftTrackSpeed = 0.f;
+	RightTrackSpeed = 0.f;
 
 	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: modo de control -> %s"),
 		ControlMode == ECWExcavatorControlMode::Drive ? TEXT("Conduccion") : TEXT("Excavacion"));
@@ -266,6 +563,265 @@ void ACWExcavator::CycleCamera()
 FVector ACWExcavator::GetBucketTipLocation() const
 {
 	return IsValid(BucketTip) ? BucketTip->GetComponentLocation() : GetActorLocation();
+}
+
+void ACWExcavator::StartEngine()
+{
+	if (bEngineRunning)
+	{
+		return;
+	}
+
+	if (FuelLiters <= 0.f)
+	{
+		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: no se puede arrancar sin combustible."));
+		return;
+	}
+
+	bEngineRunning = true;
+
+	if (EngineSound && EngineAudio)
+	{
+		EngineAudio->SetSound(EngineSound);
+		EngineAudio->Play();
+	}
+
+	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: motor en marcha (%.1f L de combustible)."), FuelLiters);
+}
+
+void ACWExcavator::StopEngine()
+{
+	if (!bEngineRunning)
+	{
+		return;
+	}
+
+	bEngineRunning = false;
+	TargetTurretInput = 0.f;
+	TargetBoomInput = 0.f;
+	TargetArmInput = 0.f;
+	TargetBucketInput = 0.f;
+	LeftTrackSpeed = 0.f;
+	RightTrackSpeed = 0.f;
+
+	if (EngineAudio)
+	{
+		EngineAudio->Stop();
+	}
+	if (HydraulicAudio)
+	{
+		HydraulicAudio->Stop();
+		bHydraulicAudioActive = false;
+	}
+
+	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: motor detenido."));
+}
+
+void ACWExcavator::ToggleEngine()
+{
+	if (bEngineRunning)
+	{
+		StopEngine();
+	}
+	else
+	{
+		StartEngine();
+	}
+}
+
+float ACWExcavator::Refuel(float Liters)
+{
+	if (Liters <= 0.f)
+	{
+		return 0.f;
+	}
+
+	const float Before = FuelLiters;
+	FuelLiters = FMath::Clamp(FuelLiters + Liters, 0.f, MaxFuelLiters);
+	return FuelLiters - Before;
+}
+
+bool ACWExcavator::DigOrLoadTruck()
+{
+	if (!bEngineRunning)
+	{
+		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: el motor debe estar en marcha para excavar."));
+		return false;
+	}
+
+	if (BucketLoadCubicMeters > KINDA_SMALL_NUMBER)
+	{
+		if (ACWDumpTruck* Truck = FindNearbyTruck())
+		{
+			const float Moved = Truck->AddLoad(BucketLoadCubicMeters);
+			if (Moved > KINDA_SMALL_NUMBER)
+			{
+				BucketLoadCubicMeters = FMath::Max(0.f, BucketLoadCubicMeters - Moved);
+				UE_LOG(LogCWVehicle, Log,
+					TEXT("CWExcavator: descargados %.2f m3 en el camion (cuchara: %.2f m3)."),
+					Moved, BucketLoadCubicMeters);
+				return true;
+			}
+		}
+
+		UE_LOG(LogCWVehicle, Warning,
+			TEXT("CWExcavator: no hay camion al alcance para descargar la cuchara."));
+		return false;
+	}
+
+	if (!IsBucketTipNearGround())
+	{
+		UE_LOG(LogCWVehicle, Warning,
+			TEXT("CWExcavator: la cuchara no esta cerca del suelo (%.0f cm)."), DigReachCm);
+		return false;
+	}
+
+	BucketLoadCubicMeters = BucketCapacityCubicMeters;
+	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: cuchara llena (%.2f m3)."), BucketLoadCubicMeters);
+	return true;
+}
+
+void ACWExcavator::SetBucketLoadForTest(float CubicMeters)
+{
+	BucketLoadCubicMeters = FMath::Clamp(CubicMeters, 0.f, BucketCapacityCubicMeters);
+}
+
+ACWDumpTruck* ACWExcavator::FindNearbyTruck() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const FVector Tip = GetBucketTipLocation();
+	ACWDumpTruck* Best = nullptr;
+	float BestDistance = TruckLoadReachCm;
+
+	for (TActorIterator<ACWDumpTruck> It(World); It; ++It)
+	{
+		ACWDumpTruck* Truck = *It;
+		if (!Truck || !Truck->CanAcceptLoad())
+		{
+			continue;
+		}
+
+		const float Distance = FVector::Dist(Tip, Truck->GetBedCenterLocation());
+		if (Distance <= BestDistance)
+		{
+			BestDistance = Distance;
+			Best = Truck;
+		}
+	}
+
+	return Best;
+}
+
+bool ACWExcavator::IsBucketTipNearGround() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	FHitResult Hit;
+	FCollisionQueryParams Params(TEXT("CWDigGround"), false, this);
+	for (TActorIterator<ACWVehicleBase> It(World); It; ++It)
+	{
+		Params.AddIgnoredActor(*It);
+	}
+
+	const FVector Start = GetBucketTipLocation() + FVector(0.f, 0.f, 20.f);
+	const FVector End = Start - FVector(0.f, 0.f, DigReachCm);
+	return World->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic, Params);
+}
+
+float ACWExcavator::GetStabilityMarginCm(float SlopeDegrees, float SlopeDirectionDegrees) const
+{
+	struct FMassPoint
+	{
+		FVector LocalPosition = FVector::ZeroVector;
+		float MassKg = 0.f;
+	};
+
+	TArray<FMassPoint> Points;
+	const FTransform ActorXf = GetActorTransform();
+
+	auto AddPoint = [&Points, &ActorXf](const USceneComponent* Component, float MassKg)
+	{
+		if (Component && MassKg > 0.f)
+		{
+			FMassPoint Point;
+			Point.LocalPosition = ActorXf.InverseTransformPositionNoScale(Component->GetComponentLocation());
+			Point.MassKg = MassKg;
+			Points.Add(Point);
+		}
+	};
+
+	AddPoint(CollisionBox, ChassisMassKg);
+	AddPoint(TurretMount, TurretMassKg);
+	AddPoint(BoomMesh, BoomMassKg);
+	AddPoint(ArmMesh, ArmMassKg);
+	AddPoint(BucketMesh, BucketMassKg);
+
+	const float LoadMassKg = BucketLoadCubicMeters * MaterialDensityKgPerCubicMeter;
+	AddPoint(BucketTip, LoadMassKg);
+
+	float TotalMass = 0.f;
+	FVector WeightedPosition = FVector::ZeroVector;
+	for (const FMassPoint& Point : Points)
+	{
+		TotalMass += Point.MassKg;
+		WeightedPosition += Point.LocalPosition * Point.MassKg;
+	}
+
+	if (TotalMass <= KINDA_SMALL_NUMBER)
+	{
+		return 0.f;
+	}
+
+	const FVector CenterOfMass = WeightedPosition / TotalMass;
+
+	// Direccion de la gravedad en el mundo para una pendiente dada.
+	const float SlopeRad = FMath::DegreesToRadians(SlopeDegrees);
+	const float DirectionRad = FMath::DegreesToRadians(SlopeDirectionDegrees);
+	const FVector WorldGravity(
+		FMath::Sin(SlopeRad) * FMath::Cos(DirectionRad),
+		FMath::Sin(SlopeRad) * FMath::Sin(DirectionRad),
+		-FMath::Cos(SlopeRad));
+
+	const FVector LocalGravity = ActorXf.InverseTransformVectorNoScale(WorldGravity);
+	const float GravityZ = FMath::Min(-0.1f, LocalGravity.Z);
+
+	// Proyeccion del centro de masas sobre el plano de apoyo (z local = 0).
+	const FVector GroundProjection(
+		CenterOfMass.X - CenterOfMass.Z * LocalGravity.X / GravityZ,
+		CenterOfMass.Y - CenterOfMass.Z * LocalGravity.Y / GravityZ,
+		0.f);
+
+	const float MarginX = TrackHalfLengthCm - FMath::Abs(GroundProjection.X);
+	const float MarginY = TrackHalfWidthCm - FMath::Abs(GroundProjection.Y);
+
+	return FMath::Min(MarginX, MarginY);
+}
+
+bool ACWExcavator::IsStableOnSlope(float SlopeDegrees, float SlopeDirectionDegrees) const
+{
+	return GetStabilityMarginCm(SlopeDegrees, SlopeDirectionDegrees) >= SafetyMarginCm;
+}
+
+void ACWExcavator::SetTestPose(float TurretYaw, float BoomPitch, float ArmPitch, float BucketPitch)
+{
+	CurrentTurretYaw = bContinuousTurret
+		? TurretYaw
+		: FMath::Clamp(TurretYaw, MinTurretYaw, MaxTurretYaw);
+	CurrentBoomPitch = FMath::Clamp(BoomPitch, MinBoomPitch, MaxBoomPitch);
+	CurrentArmPitch = FMath::Clamp(ArmPitch, MinArmPitch, MaxArmPitch);
+	CurrentBucketPitch = FMath::Clamp(BucketPitch, MinBucketPitch, MaxBucketPitch);
+
+	ApplyJointRotations();
+	UpdateHydraulics();
 }
 
 void ACWExcavator::DigBoomInput(const FInputActionValue& Value)
@@ -301,5 +857,21 @@ void ACWExcavator::CycleCameraInput(const FInputActionValue& Value)
 	if (Value.Get<bool>())
 	{
 		CycleCamera();
+	}
+}
+
+void ACWExcavator::EngineInput(const FInputActionValue& Value)
+{
+	if (Value.Get<bool>())
+	{
+		ToggleEngine();
+	}
+}
+
+void ACWExcavator::DigCycleInput(const FInputActionValue& Value)
+{
+	if (Value.Get<bool>())
+	{
+		DigOrLoadTruck();
 	}
 }

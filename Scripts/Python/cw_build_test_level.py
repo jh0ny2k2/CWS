@@ -86,6 +86,33 @@ def build_test_level():
     else:
         _log("CWVehicleBase no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
 
+    # Excavadora de cadenas (H1-B)
+    excavator_class = unreal.load_class(None, "/Script/ConstructionWorld.CWExcavator")
+    if excavator_class:
+        excavator = _spawn(eas, excavator_class, unreal.Vector(x=2400.0, y=-900.0, z=75.0),
+                           unreal.Rotator(pitch=0.0, yaw=180.0, roll=0.0))
+        excavator.set_actor_label(LABEL_PREFIX + "TestExcavator")
+    else:
+        _log("CWExcavator no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
+
+    # Camion volquete (H1-B)
+    truck_class = unreal.load_class(None, "/Script/ConstructionWorld.CWDumpTruck")
+    if truck_class:
+        truck = _spawn(eas, truck_class, unreal.Vector(x=2400.0, y=300.0, z=95.0),
+                       unreal.Rotator(pitch=0.0, yaw=0.0, roll=0.0))
+        truck.set_actor_label(LABEL_PREFIX + "TestDumpTruck")
+    else:
+        _log("CWDumpTruck no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
+
+    # Zona de descarga (H1-B)
+    zone_class = unreal.load_class(None, "/Script/ConstructionWorld.CWDumpZone")
+    if zone_class:
+        zone = _spawn(eas, zone_class, unreal.Vector(x=0.0, y=1800.0, z=250.0),
+                      unreal.Rotator(pitch=0.0, yaw=0.0, roll=0.0))
+        zone.set_actor_label(LABEL_PREFIX + "DumpZone")
+    else:
+        _log("CWDumpZone no encontrado. Compila el proyecto C++ y vuelve a ejecutar este script.")
+
     # Punto de aparicion
     player_start = _spawn(eas, unreal.PlayerStart, unreal.Vector(x=0.0, y=-600.0, z=120.0),
                           unreal.Rotator(pitch=0.0, yaw=90.0, roll=0.0))
