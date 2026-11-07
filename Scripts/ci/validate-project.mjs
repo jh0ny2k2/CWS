@@ -82,6 +82,8 @@ const requiredPairs = [
   "CWHUD",
   "CWLog",
   "CWPerformanceSubsystem",
+  "CWTestRunner",
+  "CWTestSubsystem",
 ];
 
 for (const name of requiredPairs) {

@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-07 11:50",
+  updated: "2026-11-07 12:11",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -17,6 +17,7 @@ window.CW = {
     { title: "Implementar conducción WASD, sweep de salida segura y HUD de vehículo", status: "done" },
     { title: "Arrancar e inspeccionar el primer vehículo interactivo en PIE", status: "done" },
     { title: "Cerrar la Fase 0: herramientas, CI, métricas y assets", status: "done" },
+    { title: "Cerrar H1-A: test automático de 10 ciclos entrar/salir y cámara", status: "done" },
     { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" }
   ],
 
@@ -136,7 +137,7 @@ window.CW = {
       window: "Semanas 5-8",
       goal: "Sentir que estás en una obra y poder entrar y salir de una máquina.",
       gate: "Entrar y salir 10 veces seguidas sin duplicar personajes ni perder controles; la cámara no atraviesa objetos grandes.",
-      status: "doing",
+      status: "done",
       tasks: [
         {
           id: "F1.01",
@@ -201,11 +202,14 @@ window.CW = {
         {
           id: "F1.07",
           title: "Test con teclado/ratón y mando, cambios repetidos de foco y cámara",
-          status: "doing",
-          note: "Pruebas de cambio repetido y conducción en TestLevel.",
+          status: "done",
+          evidence: "Test funcional `cw.Test.EnterExit 10` y modo headless `-CWTestEnterExit=10 -CWTestExit`: 10 ciclos PASS sin duplicar actores, con posesión correcta, salida fuera del volumen del vehículo y cámara con colisión y límites de pitch.",
           log: [
             { date: "2026-11-06 18:15", text: "Bloqueado: sin motor instalado no se puede ejecutar la prueba." },
-            { date: "2026-11-06 21:55", text: "Mecánicas de conducción y cambio de mapeos compiladas. Iniciando pruebas automáticas de ciclo completo." }
+            { date: "2026-11-06 21:55", text: "Mecánicas de conducción y cambio de mapeos compiladas. Iniciando pruebas automáticas de ciclo completo." },
+            { date: "2026-11-07 12:05", text: "Añadido ACWTestRunner + UCWTestSubsystem: 10 ciclos de entrar/salir validando posesión, visibilidad, colisión, movimiento, suelo, duplicados y cámara. Comando de consola cw.Test.EnterExit." },
+            { date: "2026-11-07 12:08", text: "Primera ejecución headless: falso positivo porque el test medía los bounds de la cámara/spring arm. Corregido para usar solo geometría con colisión (BUG-010)." },
+            { date: "2026-11-07 12:11", text: "Ejecución headless final: CW_TEST_RESULT: PASS cycles=10 (cámara OK; 10 ciclos sin duplicar actores ni perder controles)." }
           ]
         }
       ]
@@ -488,6 +492,17 @@ window.CW = {
       log: [
         { date: "2026-11-07 11:42", text: "La compilación falló con 7 símbolos externos sin resolver de ACWExcavator: el header estaba en el proyecto sin su .cpp." },
         { date: "2026-11-07 11:44", text: "Implementado CWExcavator.cpp respetando el header existente. Compilación correcta en 12,97 s." }
+      ]
+    },
+    {
+      id: "BUG-010",
+      title: "El test de salida usaba los bounds de la cámara y daba falso positivo",
+      detail: "Resuelto: la comprobación de «personaje dentro del vehículo» usa solo componentes con colisión, no la cámara ni el spring arm.",
+      severity: "Bajo",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-07 12:08", text: "La primera ejecución headless falló con bounds de 2.000 unidades que incluían la cámara/spring arm, no el volumen físico del vehículo." },
+        { date: "2026-11-07 12:11", text: "Corregido a GetComponentsBoundingBox(false). El test vuelve a pasar con 10 ciclos." }
       ]
     }
   ]

@@ -104,8 +104,8 @@ La hoja de ruta oficial es el Plan Maestro (`docs/Plan_Maestro_v1.0.pdf`). Sus h
 | Hito | Entregable | Estado |
 |---|---|---|
 | H0. Fundaciones | Proyecto compila, escenario 3D, entrada, repositorio y CI base | **Completado** (UE 5.8 registrado, Blender 5.2.3, compilación limpia, TestLevel verificado, CI y métricas) |
-| H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | En curso (implementado y compilado; falta probar en PIE y malla real) |
-| H1-B. Maquinaria | Excavadora y camión funcionales | Pendiente |
+| H1-A. Personaje y controles | 1ª/3ª persona, interacción, entrar/salir de cabina, HUD | **Completado** (test automático `cw.Test.EnterExit 10` en PASS: 10 ciclos sin duplicados ni pérdida de controles) |
+| H1-B. Maquinaria | Excavadora y camión funcionales | En curso (prototipo articulado de excavadora compilando) |
 | H2. Terreno | Prototipo de excavación validado (riesgo máximo) | Pendiente (riesgo principal) |
 | H3. Contratos y vertical slice | Ciclo contractual completo + guardado (CWS-001) | Pendiente |
 | H4. Pulido gráfico y sonoro | Assets y pulido visual | Pendiente |

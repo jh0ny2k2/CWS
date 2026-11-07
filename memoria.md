@@ -152,3 +152,12 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Panel actualizado: F0.03/F0.04/F0.06/F0.07 a `done` con bitácora, hito H0 a `done`, `CW.updated` a 2026-11-07 11:50. README, ARQUITECTURA y Hojaruta sincronizados.
 - Git: commit `ef89dbc` subido a `origin/main` y `origin/develop`.
 - Archivos afectados: `AGENTS.md`, `.github/workflows/ci.yml`, `Scripts/ci/*`, `Scripts/Build.ps1`, `CONTRIBUTING.md`, `Source/ConstructionWorld/Public/CW{Log,Units,PerformanceSubsystem,Excavator}.h`, `Source/ConstructionWorld/Private/CW{Log,PerformanceSubsystem,Excavator}.cpp`, `Source/ConstructionWorld/Private/CWHUD.cpp`, `CWPlayerCharacter.cpp`, `CWVehicleBase.cpp`, `docs/{CONVENCIONES.md,ASSETS.md,assets_manifest.json,ARQUITECTURA.md}`, `Content/ConstructionWorld/*`, `ArtSource/*`, `web/assets/data.js`, `README.md`, `Hojaruta.md`, `memoria.md`.
+
+## [2026-11-07 12:12] H1-A cerrado: test automático de 10 ciclos entrar/salir
+
+- **F1.07 (hecha):** nuevo ejecutor `ACWTestRunner` (10 ciclos de entrar/salir con validación de posesión, visibilidad, colisión, movimiento, suelo, duplicados y cámara) y subsistema `UCWTestSubsystem` que lo arranca con `-CWTestEnterExit=N -CWTestExit` en modo headless. Comando de consola `cw.Test.EnterExit 10`.
+- **BUG-010 (resuelto):** la comprobación «personaje dentro del vehículo» usaba `GetComponentsBoundingBox(true)` e incluía cámara/spring arm; corregido a `GetComponentsBoundingBox(false)` (solo geometría con colisión).
+- Ejecución headless final: `CW_TEST_RESULT: PASS cycles=10 camara OK; 10 ciclos sin duplicar actores ni perder controles` (código de salida 0).
+- Añadida la categoría `LogCWTest`; `validate-project.mjs` exige ahora los pares `CWTestRunner` y `CWTestSubsystem`.
+- Panel: F1.07 a `done` con evidencia, hito H1-A a `done`, BUG-010 como `Resuelto`, `CW.updated` 2026-11-07 12:11. README, ARQUITECTURA y Hojaruta sincronizados (H1-B en curso).
+- Archivos afectados: `Source/ConstructionWorld/Public/CWTestRunner.h`, `CWTestSubsystem.h`, `CWLog.h`; `Source/ConstructionWorld/Private/CWTestRunner.cpp`, `CWTestSubsystem.cpp`, `CWLog.cpp`; `Scripts/ci/validate-project.mjs`, `web/assets/data.js`, `README.md`, `docs/ARQUITECTURA.md`, `Hojaruta.md`, `memoria.md`.
