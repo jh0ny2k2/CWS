@@ -190,3 +190,9 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
   - Revalidadas pruebas anteriores: `-CWTestEnterExit=10` (PASS), `-CWTestExcavator` (PASS), `-CWTestTruck` (PASS).
 - **Panel y documentación sincronizados:** F3.01–F3.12 y T-001–T-006 a `done` con bitácora en `web/assets/data.js`, hito H2 a `done`, `CW.updated` 2026-11-07 14:15. `Hojaruta.md`, `README.md` y `docs/ARQUITECTURA.md` actualizados fijando H3 (primera misión jugable) como siguiente objetivo.
 - Archivos afectados: `Source/ConstructionWorld/Public/{CWTerrainTypes,CWTerrainField,CWTerrainSubsystem,CWStockpile,CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner,CWLog}.h`; `Source/ConstructionWorld/Private/{CWTerrainTypes,CWTerrainField,CWTerrainSubsystem,CWStockpile,CWExcavator,CWDumpTruck,CWDumpZone,CWTestRunner,CWTestSubsystem,CWHUD,CWLog}.cpp`; `Source/ConstructionWorld/ConstructionWorld.Build.cs`; `ConstructionWorld.uproject`; `Content/Maps/{TestLevel,TerrainPrototype}.umap`; `Scripts/Python/{cw_build_terrain_prototype,cw_build_test_level,cw_verify_test_level}.py`; `Scripts/ci/validate-project.mjs`; `docs/ADR/ADR-002-backend-terreno.md`; `docs/ARQUITECTURA.md`; `web/assets/data.js`; `Hojaruta.md`; `README.md`; `memoria.md`.
+
+## [2026-11-07 14:21] Lanzadores rápidos para pruebas locales
+
+- Creados `Jugar (TestLevel).cmd` (lanza el mapa TestLevel directamente en modo standalone con ventana 1600x900 y log) y `Abrir Editor.cmd` (abre Unreal Editor 5.8 con el proyecto).
+- Archivos afectados: `Jugar (TestLevel).cmd`, `Abrir Editor.cmd`, `memoria.md`.
+- Resultado: acceso directo con doble clic para probar el juego o editarlo.
