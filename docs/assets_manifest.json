@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-07",
+  "updated": "2026-11-09",
   "notes": "Inventario legible por maquina. Reglas y detalle en docs/ASSETS.md. Estados validos: planificado, prototipo, adquirido, integrado.",
   "assets": [
     {
@@ -122,6 +122,46 @@
       "license": "CC0",
       "path": "Content/ConstructionWorld/UI",
       "notes": "Contratos, materiales, maquinaria y estados."
+    },
+    {
+      "id": "AST-013",
+      "title": "Materiales PBR con suciedad (prototipo H4)",
+      "category": "Material",
+      "status": "prototipo",
+      "source": "Creacion propia (Scripts/Python/cw_build_pbr_materials.py)",
+      "license": "Propiedad del proyecto",
+      "path": "Content/ConstructionWorld/Materials",
+      "notes": "M_CW_MasterPBR con ruido de suciedad y 11 instancias MI_CW_* (pintura de obra, acero, goma, cromo, cristal, tierra, grava, hormigon, madera, cono y contenedor). Sustituir por AST-007/AST-008 cuando se integren texturas 2K/4K."
+    },
+    {
+      "id": "AST-014",
+      "title": "Efectos translucidos de polvo, huellas y lluvia (prototipo H4)",
+      "category": "Efecto",
+      "status": "prototipo",
+      "source": "Creacion propia (M_CW_TranslucentFX + componentes C++)",
+      "license": "Propiedad del proyecto",
+      "path": "Content/ConstructionWorld/Materials/M_CW_TranslucentFX.uasset",
+      "notes": "Material unlit translucido compartido por UCWVehicleFXComponent (polvo y huellas) y ACWWeatherSystem (lluvia instanciada). Sin colision ni sombras."
+    },
+    {
+      "id": "AST-015",
+      "title": "Audio de motor diesel e hidraulica (prototipo H4)",
+      "category": "Audio",
+      "status": "prototipo",
+      "source": "Creacion propia / sintesis de audio",
+      "license": "Propiedad del proyecto",
+      "path": "Content/ConstructionWorld/Audio",
+      "notes": "SW_CW_DieselEngine y SW_CW_HydraulicPump con USoundAttenuation espacial y modulacion por regimen/carga. Sustituir por AST-011 cuando se integren grabaciones reales."
+    },
+    {
+      "id": "AST-016",
+      "title": "Decorado de obra del TestLevel (prototipo H4)",
+      "category": "Entorno",
+      "status": "prototipo",
+      "source": "Contenido de Unreal Engine (/Engine/BasicShapes) + generador Python",
+      "license": "Epic Games - contenido de Engine",
+      "path": "Content/Maps/TestLevel.umap",
+      "notes": "Conos, barreras, contenedor, palets, tuberias, monticulos de tierra/grava y colinas lejanas creados por cw_build_test_level.py. Sustituir por AST-009/AST-010."
     }
   ]
 }

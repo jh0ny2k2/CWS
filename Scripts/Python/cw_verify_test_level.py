@@ -52,7 +52,10 @@ def verify():
         "CW_Ground", "CW_Block_A", "CW_Block_B", "CW_Block_C",
         "CW_TestVehicle", "CW_TestExcavator", "CW_TestDumpTruck", "CW_DumpZone",
         "CW_TerrainField", "CW_PlayerStart", "CW_Sun",
-        "CW_SkyAtmosphere", "CW_SkyLight", "CW_HeightFog",
+        "CW_SkyAtmosphere", "CW_SkyLight", "CW_HeightFog", "CW_GlobalPostProcess",
+        "CW_Cone_00", "CW_Cone_06", "CW_Barrier_00", "CW_Barrier_04",
+        "CW_SiteContainer", "CW_Pallet_00", "CW_DirtPile_A", "CW_GravelPile",
+        "CW_Hill_N", "CW_Hill_S",
     ]
     labels = [line.split(" | ")[0] for line in found]
     missing = [name for name in expected if name not in labels]
@@ -60,6 +63,22 @@ def verify():
         _log("FALTAN: " + ", ".join(missing))
         return False
 
+    # H4: los materiales PBR y el material de efectos deben existir.
+    material_dir = "/Game/ConstructionWorld/Materials"
+    material_names = [
+        "M_CW_MasterPBR", "M_CW_TranslucentFX",
+        "MI_CW_ConstructionYellow", "MI_CW_HeavySteel", "MI_CW_Rubber",
+        "MI_CW_Chrome", "MI_CW_Glass", "MI_CW_Earth", "MI_CW_Gravel",
+        "MI_CW_Concrete", "MI_CW_Wood", "MI_CW_ConeOrange", "MI_CW_ContainerBlue",
+    ]
+    missing_materials = [name for name in material_names
+                         if not unreal.EditorAssetLibrary.does_asset_exist(
+                             material_dir + "/" + name)]
+    if missing_materials:
+        _log("FALTAN MATERIALES: " + ", ".join(missing_materials))
+        return False
+
+    _log("Materiales H4 presentes: %d" % len(material_names))
     _log("Nivel verificado: los %d actores esperados estan presentes." % len(expected))
     return True
 

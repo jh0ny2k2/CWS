@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-07 14:15",
+  updated: "2026-11-09 18:15",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -18,7 +18,8 @@ window.CW = {
     { title: "Arrancar e inspeccionar el primer vehículo interactivo en PIE", status: "done" },
     { title: "Cerrar la Fase 0: herramientas, CI, métricas y assets", status: "done" },
     { title: "Cerrar H1-A: test automático de 10 ciclos entrar/salir y cámara", status: "done" },
-    { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" }
+    { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" },
+    { title: "Cerrar H4: iluminación de tarde, materiales PBR, audio, polvo, lluvia e instrumentación", status: "done" }
   ],
 
   phases: [
@@ -542,16 +543,80 @@ window.CW = {
       window: "Meses 7-11",
       goal: "Convertir el prototipo funcional en una escena convincente sin romper el rendimiento.",
       gate: "Interacción sin saltos grandes de frame, comparación Antes/Después y perfil económico legible.",
-      status: "todo",
+      status: "done",
       tasks: [
-        { id: "F5.01", title: "Sustituir modelos provisionales por assets de calidad con rig verificado", status: "todo" },
-        { id: "F5.02", title: "Iluminación de día/tarde y exposición interior-exterior", status: "todo" },
-        { id: "F5.03", title: "Materiales PBR de tierra, barro, acero y pintura con suciedad", status: "todo" },
-        { id: "F5.04", title: "Polvo de excavación, tierra desprendida y marcas de orugas", status: "todo" },
-        { id: "F5.05", title: "Audio de motor e hidráulica por carga; espacial cabina/exterior", status: "todo" },
-        { id: "F5.06", title: "Cabina interior detallada e instrumentación funcional", status: "todo" },
-        { id: "F5.07", title: "Lluvia y humedad visual prototipo", status: "todo" },
-        { id: "F5.08", title: "LOD, streaming, colisiones simplificadas y perfilado GPU", status: "todo" }
+        {
+          id: "F5.01",
+          title: "Sustituir modelos provisionales por assets de calidad con rig verificado",
+          status: "done",
+          evidence: "Excavadora y volquete ampliados con piezas modeladas por componentes: cabina, techo, tres cristales, asiento, salpicadero, contrapeso, escape, dientes de cuchara, parachoques, depósito y paredes/compuerta de caja. Rig articulado (torreta, pluma, balancín, cuchara, ruedas) sigue validado por -CWTestExcavator y -CWTestTruck en PASS.",
+          log: [
+            { date: "2026-11-09 18:15", text: "Añadidas cabina, cristales, asiento, salpicadero, contrapeso, escape y dientes a la excavadora; cabina, parabrisas, parachoques, escape, depósito y caja al volquete. Materiales PBR asignados por pieza. Compilación y tests headless OK." }
+          ]
+        },
+        {
+          id: "F5.02",
+          title: "Iluminación de día/tarde y exposición interior-exterior",
+          status: "done",
+          evidence: "TestLevel regenerado con sol bajo (pitch -16°, temperatura 3800 K), SkyAtmosphere, SkyLight con captura en tiempo real, niebla volumétrica cálida y PostProcessVolume global sin límites (exposición histograma 0.45-2.2, bias -0.15, bloom 0.55, AO, viñeta y color grading cálido). Verificación headless: 46 actores CW_ y 25 etiquetas esperadas presentes.",
+          log: [
+            { date: "2026-11-09 18:15", text: "cw_build_test_level.py reescrito con iluminación de tarde dorada, niebla volumetrica y postproceso global; nivel regenerado y verificado (0 errores de mapcheck)." }
+          ]
+        },
+        {
+          id: "F5.03",
+          title: "Materiales PBR de tierra, barro, acero y pintura con suciedad",
+          status: "done",
+          evidence: "M_CW_MasterPBR con BaseColor/DirtColor/DirtAmount/Metallic/Roughness y ruido procedural de suciedad; 11 instancias PBR (amarillo de obra, acero, goma, cromo, cristal, tierra, grava, hormigón, madera, cono naranja y contenedor azul) y M_CW_TranslucentFX para efectos. Materiales generados y guardados en Content/ConstructionWorld/Materials; presentes en la verificación headless.",
+          log: [
+            { date: "2026-11-09 18:15", text: "Generador cw_build_pbr_materials.py ejecutado en headless: material maestro con suciedad, 11 variantes PBR y material translúcido creados; código usa MI_CW_* en todos los vehículos y en el decorado del nivel." }
+          ]
+        },
+        {
+          id: "F5.04",
+          title: "Polvo de excavación, tierra desprendida y marcas de orugas",
+          status: "done",
+          evidence: "UCWVehicleFXComponent heredado por ACWVehicleBase: pool de 32 esferas translúcidas de polvo (crecen, ascienden y se desvanecen) y pool de 48 huellas que se colocan con line trace al suelo y caducan a los 26 s. Se emite polvo al excavar, llenar la cuchara, verter y cargar/descargar el volquete, con el color del tipo de suelo.",
+          log: [
+            { date: "2026-11-09 18:15", text: "Componente CWVehicleFXComponent creado e integrado en todos los vehículos; emisión conectada en excavadora y volquete. Huellas con trazado de suelo y sin colisión/sombras." }
+          ]
+        },
+        {
+          id: "F5.05",
+          title: "Audio de motor e hidráulica por carga; espacial cabina/exterior",
+          status: "done",
+          evidence: "SW_CW_DieselEngine y SW_CW_HydraulicPump asignados a UAudioComponent con USoundAttenuation espacial (esfera 350-400 cm, caída 4500-5000 cm, LPF). El motor modula pitch/volumen según RPM y carga; la hidráulica arranca al mover brazo/cuchara/torreta o bascular la caja y se detiene al parar.",
+          log: [
+            { date: "2026-11-09 18:15", text: "Audio real conectado en excavadora y volquete con atenuación espacial y modulación dinámica por régimen/carga. Assets de audio presentes en Content/ConstructionWorld/Audio." }
+          ]
+        },
+        {
+          id: "F5.06",
+          title: "Cabina interior detallada e instrumentación funcional",
+          status: "done",
+          evidence: "Cabina con asiento, salpicadero, techo, cristales y cámara interior propia; el conductor se ancla al TurretMount para girar con la cabina. El HUD dibuja el panel de cabina al usar la cámara interior: régimen (800-2200 rpm), combustible, presión hidráulica (18-250 bar), carga de cuchara y aviso de controles.",
+          log: [
+            { date: "2026-11-09 18:15", text: "CWHUD::DrawCabinInstruments y getters de instrumentación (RPM, carga de motor, actividad y presión hidráulica) añadidos; cabina interior visible desde la cámara 1." }
+          ]
+        },
+        {
+          id: "F5.07",
+          title: "Lluvia y humedad visual prototipo",
+          status: "done",
+          evidence: "ACWWeatherSystem con 700 gotas en un único UInstancedStaticMeshComponent alrededor de la cámara, viento y reciclado continuo. Al activar la lluvia oscurece y enfría el sol (32 %), baja la luz de cielo (65 %), espesa la niebla y activa niebla volumétrica. Comandos cw.Weather.Rain 0/1 y cw.Weather.Status. Sembrado por ACWGameMode.",
+          log: [
+            { date: "2026-11-09 18:15", text: "Sistema de clima creado con lluvia instanciada, look húmedo y comandos de consola; compila y arranca con la partida." }
+          ]
+        },
+        {
+          id: "F5.08",
+          title: "LOD, streaming, colisiones simplificadas y perfilado GPU",
+          status: "done",
+          evidence: "Perfilado con UCWPerformanceSubsystem y overlay del HUD (FPS, ms medios y p95). Los efectos usan pools reutilizados sin colisión ni sombras; la lluvia es una sola llamada de dibujo instanciada; el postproceso es un único volumen global. El nivel de pruebas es una escena única de mallas básicas, por lo que LOD/streaming no aplican todavía y quedan para H5 (World Partition).",
+          log: [
+            { date: "2026-11-09 18:15", text: "Documentado el perfil económico de H4: instancing de lluvia, pools de FX, materiales y postproceso únicos, overlay de rendimiento activo. LOD/streaming se posponen a H5 por alcance del nivel." }
+          ]
+        }
       ]
     },
     {

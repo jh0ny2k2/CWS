@@ -3,6 +3,8 @@
 #include "CWDumpZone.h"
 #include "CWLog.h"
 #include "CWTerrainSubsystem.h"
+#include "CWVehicleFXComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -14,6 +16,9 @@
 #include "InputActionValue.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
+#include "Materials/MaterialInterface.h"
+#include "Sound/SoundAttenuation.h"
+#include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
 ACWDumpTruck::ACWDumpTruck()
@@ -67,6 +72,151 @@ ACWDumpTruck::ACWDumpTruck()
 	WheelFrontRight = CreateWheel(TEXT("WheelFrontRight"), FVector(220.f, 125.f, -30.f));
 	WheelRearLeft = CreateWheel(TEXT("WheelRearLeft"), FVector(-220.f, -125.f, -30.f));
 	WheelRearRight = CreateWheel(TEXT("WheelRearRight"), FVector(-220.f, 125.f, -30.f));
+
+	// --- Cabina, cristales y detalles (F5.01 / F5.06) -----------------------
+	CabinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CabinMesh"));
+	CabinMesh->SetupAttachment(CollisionBox);
+	CabinMesh->SetRelativeLocation(FVector(242.f, 0.f, 120.f));
+	CabinMesh->SetRelativeScale3D(FVector(1.8f, 2.4f, 2.0f));
+	CabinMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CubeMesh.Succeeded())
+	{
+		CabinMesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	WindshieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WindshieldMesh"));
+	WindshieldMesh->SetupAttachment(CollisionBox);
+	WindshieldMesh->SetRelativeLocation(FVector(334.f, 0.f, 148.f));
+	WindshieldMesh->SetRelativeScale3D(FVector(0.04f, 2.1f, 0.9f));
+	WindshieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CubeMesh.Succeeded())
+	{
+		WindshieldMesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	BumperMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BumperMesh"));
+	BumperMesh->SetupAttachment(CollisionBox);
+	BumperMesh->SetRelativeLocation(FVector(342.f, 0.f, -10.f));
+	BumperMesh->SetRelativeScale3D(FVector(0.35f, 2.7f, 0.55f));
+	BumperMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CubeMesh.Succeeded())
+	{
+		BumperMesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	ExhaustStackMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExhaustStackMesh"));
+	ExhaustStackMesh->SetupAttachment(CollisionBox);
+	ExhaustStackMesh->SetRelativeLocation(FVector(150.f, 135.f, 170.f));
+	ExhaustStackMesh->SetRelativeScale3D(FVector(0.14f, 0.14f, 1.5f));
+	ExhaustStackMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CylinderMesh.Succeeded())
+	{
+		ExhaustStackMesh->SetStaticMesh(CylinderMesh.Object);
+	}
+
+	// Deposito de combustible cilindrico bajo el chasis, en el lado izquierdo.
+	FuelTankMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FuelTankMesh"));
+	FuelTankMesh->SetupAttachment(CollisionBox);
+	FuelTankMesh->SetRelativeLocation(FVector(-20.f, -148.f, 15.f));
+	FuelTankMesh->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+	FuelTankMesh->SetRelativeScale3D(FVector(0.55f, 0.55f, 1.5f));
+	FuelTankMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CylinderMesh.Succeeded())
+	{
+		FuelTankMesh->SetStaticMesh(CylinderMesh.Object);
+	}
+
+	// Paredes laterales y compuerta de la caja basculante.
+	UStaticMesh* CubeAsset = CubeMesh.Succeeded() ? CubeMesh.Object : nullptr;
+	auto CreateBedPart = [this, CubeAsset](const TCHAR* Name, const FVector& Location,
+		const FVector& Scale)
+	{
+		UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Part->SetupAttachment(BedPivot);
+		Part->SetRelativeLocation(Location);
+		Part->SetRelativeScale3D(Scale);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (CubeAsset)
+		{
+			Part->SetStaticMesh(CubeAsset);
+		}
+		return Part;
+	};
+
+	BedSideLeftMesh = CreateBedPart(TEXT("BedSideLeftMesh"), FVector(200.f, -112.f, 95.f), FVector(4.2f, 0.08f, 0.9f));
+	BedSideRightMesh = CreateBedPart(TEXT("BedSideRightMesh"), FVector(200.f, 112.f, 95.f), FVector(4.2f, 0.08f, 0.9f));
+	BedTailgateMesh = CreateBedPart(TEXT("BedTailgateMesh"), FVector(-12.f, 0.f, 95.f), FVector(0.1f, 2.2f, 0.9f));
+
+	// El conductor se sienta en la cabina delantera (F5.06).
+	DriverSeatPoint->SetRelativeLocation(FVector(242.f, 0.f, 70.f));
+
+	// --- Audio de motor e hidraulica (F5.05) --------------------------------
+	EngineAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
+	EngineAudio->SetupAttachment(CollisionBox);
+	EngineAudio->bAutoActivate = false;
+
+	HydraulicAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("HydraulicAudio"));
+	HydraulicAudio->SetupAttachment(BedPivot);
+	HydraulicAudio->bAutoActivate = false;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> EngineSoundFinder(
+		TEXT("/Game/ConstructionWorld/Audio/SW_CW_DieselEngine.SW_CW_DieselEngine"));
+	if (EngineSoundFinder.Succeeded())
+	{
+		EngineSound = EngineSoundFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> HydraulicSoundFinder(
+		TEXT("/Game/ConstructionWorld/Audio/SW_CW_HydraulicPump.SW_CW_HydraulicPump"));
+	if (HydraulicSoundFinder.Succeeded())
+	{
+		HydraulicSound = HydraulicSoundFinder.Object;
+	}
+
+	USoundAttenuation* TruckAttenuation = CreateDefaultSubobject<USoundAttenuation>(
+		TEXT("TruckAttenuation"));
+	TruckAttenuation->Attenuation.bAttenuate = true;
+	TruckAttenuation->Attenuation.bSpatialize = true;
+	TruckAttenuation->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+	TruckAttenuation->Attenuation.AttenuationShapeExtents = FVector(400.f, 0.f, 0.f);
+	TruckAttenuation->Attenuation.FalloffDistance = 5000.f;
+	EngineAudio->AttenuationSettings = TruckAttenuation;
+	HydraulicAudio->AttenuationSettings = TruckAttenuation;
+
+	// --- Materiales PBR por pieza (F5.03) -----------------------------------
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> YellowMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_ConstructionYellow.MI_CW_ConstructionYellow"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> SteelMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_HeavySteel.MI_CW_HeavySteel"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RubberMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Rubber.MI_CW_Rubber"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> ChromeMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Chrome.MI_CW_Chrome"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GlassMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Glass.MI_CW_Glass"));
+
+	const auto ApplyMaterial = [](UStaticMeshComponent* Component, UMaterialInterface* Material)
+	{
+		if (Component && Material)
+		{
+			Component->SetMaterial(0, Material);
+		}
+	};
+
+	ApplyMaterial(BodyMesh.Get(), YellowMat.Object);
+	ApplyMaterial(CabinMesh.Get(), YellowMat.Object);
+	ApplyMaterial(WindshieldMesh.Get(), GlassMat.Object);
+	ApplyMaterial(BumperMesh.Get(), ChromeMat.Object);
+	ApplyMaterial(ExhaustStackMesh.Get(), ChromeMat.Object);
+	ApplyMaterial(FuelTankMesh.Get(), SteelMat.Object);
+	ApplyMaterial(BedMesh.Get(), SteelMat.Object);
+	ApplyMaterial(BedSideLeftMesh.Get(), SteelMat.Object);
+	ApplyMaterial(BedSideRightMesh.Get(), SteelMat.Object);
+	ApplyMaterial(BedTailgateMesh.Get(), SteelMat.Object);
+	ApplyMaterial(WheelFrontLeft.Get(), RubberMat.Object);
+	ApplyMaterial(WheelFrontRight.Get(), RubberMat.Object);
+	ApplyMaterial(WheelRearLeft.Get(), RubberMat.Object);
+	ApplyMaterial(WheelRearRight.Get(), RubberMat.Object);
 }
 
 void ACWDumpTruck::BeginPlay()
@@ -75,6 +225,12 @@ void ACWDumpTruck::BeginPlay()
 
 	UpdateBed(0.f);
 	UpdateWheels(0.f);
+
+	if (EngineSound && EngineAudio)
+	{
+		EngineAudio->SetSound(EngineSound);
+		EngineAudio->Play();
+	}
 
 	UE_LOG(LogCWVehicle, Log, TEXT("CWDumpTruck listo (capacidad %.1f m3)."), CapacityCubicMeters);
 }
@@ -104,6 +260,8 @@ void ACWDumpTruck::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void ACWDumpTruck::Tick(float DeltaSeconds)
 {
+	UpdateEngineAudio();
+
 	// Modelo de ruedas por traza (F2.10). No usamos el movimiento cinematico
 	// del vehiculo base: aqui hay inercia, agarre, pendiente y peso.
 	if (!Driver)
@@ -256,6 +414,23 @@ void ACWDumpTruck::UpdateBed(float DeltaSeconds)
 	}
 
 	BedPivot->SetRelativeRotation(FRotator(CurrentBedAngle, 0.f, 0.f));
+
+	// Audio hidraulico al subir o bajar la caja (F5.05).
+	const bool bBedMoving = !FMath::IsNearlyEqual(CurrentBedAngle, TargetBedAngle, 0.5f);
+	if (HydraulicSound && HydraulicAudio)
+	{
+		if (bBedMoving && !bBedHydraulicAudio)
+		{
+			HydraulicAudio->SetSound(HydraulicSound);
+			HydraulicAudio->Play();
+			bBedHydraulicAudio = true;
+		}
+		else if (!bBedMoving && bBedHydraulicAudio)
+		{
+			HydraulicAudio->Stop();
+			bBedHydraulicAudio = false;
+		}
+	}
 }
 
 void ACWDumpTruck::UpdateWheels(float DeltaSeconds)
@@ -273,6 +448,21 @@ void ACWDumpTruck::UpdateWheels(float DeltaSeconds)
 	if (WheelFrontRight) { WheelFrontRight->SetRelativeRotation(FrontRotation); }
 	if (WheelRearLeft)   { WheelRearLeft->SetRelativeRotation(RearRotation); }
 	if (WheelRearRight)  { WheelRearRight->SetRelativeRotation(RearRotation); }
+}
+
+void ACWDumpTruck::UpdateEngineAudio()
+{
+	if (!EngineAudio || !EngineAudio->IsPlaying())
+	{
+		return;
+	}
+
+	const float SpeedRatio = FMath::Clamp(
+		FMath::Abs(CurrentSpeedCmS) / FMath::Max(1.f, MaxDriveSpeed), 0.f, 1.f);
+	const float LoadRatio = GetFillRatio();
+
+	EngineAudio->SetPitchMultiplier(0.72f + 0.55f * SpeedRatio + 0.08f * LoadRatio);
+	EngineAudio->SetVolumeMultiplier(0.82f + 0.18f * SpeedRatio);
 }
 
 float ACWDumpTruck::AddLoad(float CubicMeters)
@@ -297,6 +487,11 @@ float ACWDumpTruck::AddLoad(float CubicMeters)
 
 	if (Accepted > KINDA_SMALL_NUMBER)
 	{
+		if (VisualFX)
+		{
+			VisualFX->EmitDust(GetBedCenterLocation(),
+				CWSoil::GetSoilProperties(LoadSoilType).Color, 8, 0.9f);
+		}
 		UE_LOG(LogCWVehicle, Log,
 			TEXT("CWDumpTruck: cargados %.2f m3 (%.2f / %.1f m3, %.0f kg)."),
 			Accepted, LoadCubicMeters, CapacityCubicMeters, GetLoadWeightKg());
@@ -375,6 +570,11 @@ bool ACWDumpTruck::TryDump()
 		if (Zone->DeliverLoad(Amount, this))
 		{
 			LoadCubicMeters = 0.f;
+			if (VisualFX)
+			{
+				VisualFX->EmitDust(GetBedCenterLocation(),
+					CWSoil::GetSoilProperties(LoadSoilType).Color, 16, 1.25f);
+			}
 			UE_LOG(LogCWVehicle, Log, TEXT("CWDumpTruck: descargados %.2f m3 en zona."), Amount);
 			return true;
 		}
@@ -393,6 +593,11 @@ bool ACWDumpTruck::TryDump()
 			if (Deposited > KINDA_SMALL_NUMBER)
 			{
 				LoadCubicMeters = FMath::Max(0.f, LoadCubicMeters - Deposited);
+				if (VisualFX)
+				{
+					VisualFX->EmitDust(GetBedCenterLocation(),
+						CWSoil::GetSoilProperties(LoadSoilType).Color, 14, 1.2f);
+				}
 				UE_LOG(LogCWVehicle, Log,
 					TEXT("CWDumpTruck: descargados %.2f m3 de %s en el terreno (resto %.2f m3)."),
 					Deposited, *CWSoil::GetSoilProperties(LoadSoilType).DisplayName,

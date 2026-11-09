@@ -1,9 +1,9 @@
 # Construction World — Simulador de construcción 3D (UE 5.8)
 
-Estado actual: **H0 (Fundaciones), H1-A (personaje y controles), H1-B (maquinaria) y H2 (terreno deformable) completados**.
+Estado actual: **H0 (Fundaciones), H1-A (personaje y controles), H1-B (maquinaria), H2 (terreno deformable) y H4 (pulido gráfico y sonoro) completados**.
 El objetivo inmediato es la primera misión jugable de H3.
 
-> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 15 actores (`CW_TerrainField` incluido), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`) y terreno deformable (`-CWTestTerrain`, 6 ciclos PASS). Falta empaquetar una build base.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 46 actores `CW_` (incluye decorado de obra, iluminación de tarde y postproceso global), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`) y terreno deformable (`-CWTestTerrain`, 6 ciclos PASS). Falta empaquetar una build base.
 
 ## Panel de seguimiento
 
@@ -138,7 +138,9 @@ O con el script del proyecto:
 
 ### Paso 3 — Nivel de pruebas
 
-El nivel `/Game/Maps/TestLevel` **ya está generado y verificado** (10 actores `CW_`). Solo hay que regenerarlo si se borra o se quiere partir de cero. Con el editor abierto:
+El nivel `/Game/Maps/TestLevel` **ya está generado y verificado** (46 actores `CW_`, incluido el decorado de obra y la iluminación de H4). Solo hay que regenerarlo si se borra, se quiere partir de cero o se cambian los materiales/iluminación.
+
+Con el editor abierto:
 
 1. Menú **Tools → Execute Python Script…**
 2. Selecciona `Scripts\Python\cw_build_test_level.py`.
@@ -150,7 +152,7 @@ Alternativa por línea de comandos:
 & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "C:\Users\Jhony\Desktop\Juego\ConstructionWorld.uproject" -run=pythonscript -script="C:\Users\Jhony\Desktop\Juego\Scripts\Python\cw_build_test_level.py"
 ```
 
-Si prefieres hacerlo a mano: crea un nivel en `Content/Maps/TestLevel`, añade un `PlayerStart`, un suelo (`/Engine/BasicShapes/Plane` escalado), `DirectionalLight`, `SkyAtmosphere`, `SkyLight` y `ExponentialHeightFog`, y guarda.
+Si prefieres hacerlo a mano: crea un nivel en `Content/Maps/TestLevel`, añade un `PlayerStart`, un suelo (`/Engine/BasicShapes/Plane` escalado), `DirectionalLight`, `SkyAtmosphere`, `SkyLight`, `ExponentialHeightFog` y un `PostProcessVolume` global, y guarda.
 
 ### Paso 4 — Probar
 
@@ -179,6 +181,17 @@ El HUD muestra `FPS | ms | p95 ms` en la esquina superior izquierda. Comandos de
 | `cw.Perf.Report 0` / `1` | Desactiva / activa el resumen automático |
 | `cw.Perf.Interval 30` | Cambia los segundos entre resúmenes |
 | `cw.Perf.Reset` | Vacía la ventana de muestras |
+
+**Pulido gráfico y ambiental (H4)**
+
+| Comando / tecla | Efecto |
+|---|---|
+| `cw.Weather.Rain 1` / `0` | Activa / desactiva lluvia, humedad, sol apagado y niebla densa |
+| `cw.Weather.Status` | Muestra si llueve y cuántas gotas hay |
+| `C` (excavadora) | Cicla cámaras exterior / cabina / cuchara |
+| Panel inferior en cabina | Régimen, combustible, presión hidráulica y carga de cuchara |
+
+Los materiales PBR viven en `Content/ConstructionWorld/Materials` y se generan con `Scripts\Python\cw_build_pbr_materials.py`. El audio de motor e hidráulica está en `Content/ConstructionWorld/Audio`.
 
 Las unidades y convenciones de código están en `docs/CONVENCIONES.md`.
 

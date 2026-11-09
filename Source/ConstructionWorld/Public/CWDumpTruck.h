@@ -6,9 +6,11 @@
 #include "CWDumpTruck.generated.h"
 
 class ACWDumpZone;
+class UAudioComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 class UInputAction;
+class USoundBase;
 struct FInputActionValue;
 
 /**
@@ -183,12 +185,54 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Wheels")
 	TObjectPtr<UStaticMeshComponent> WheelRearRight;
 
+	// Componentes visuales y de cabina (F5.01 / F5.06)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Cabin")
+	TObjectPtr<UStaticMeshComponent> WindshieldMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Cabin")
+	TObjectPtr<UStaticMeshComponent> BumperMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Cabin")
+	TObjectPtr<UStaticMeshComponent> ExhaustStackMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Cabin")
+	TObjectPtr<UStaticMeshComponent> FuelTankMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Bed")
+	TObjectPtr<UStaticMeshComponent> BedSideLeftMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Bed")
+	TObjectPtr<UStaticMeshComponent> BedSideRightMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Bed")
+	TObjectPtr<UStaticMeshComponent> BedTailgateMesh;
+
+	// Audio de motor e hidraulica (F5.05)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Audio")
+	TObjectPtr<UAudioComponent> EngineAudio;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|DumpTruck|Audio")
+	TObjectPtr<UAudioComponent> HydraulicAudio;
+
+	/** Sonido de motor (H4 / F5.05). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpTruck|Audio")
+	TObjectPtr<USoundBase> EngineSound;
+
+	/** Sonido de la bomba hidraulica al bascular. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|DumpTruck|Audio")
+	TObjectPtr<USoundBase> HydraulicSound;
+
 protected:
+	bool bBedHydraulicAudio = false;
 	void BedInput(const FInputActionValue& Value);
 	void DumpInput(const FInputActionValue& Value);
 
 	void UpdateBed(float DeltaSeconds);
 	void UpdateWheels(float DeltaSeconds);
+	void UpdateEngineAudio();
 	float GetTractionAndNormal(FVector& OutGroundNormal);
 
 	UPROPERTY(Transient)

@@ -8,6 +8,7 @@
 class ACWPlayerCharacter;
 class UBoxComponent;
 class UCameraComponent;
+class UCWVehicleFXComponent;
 class UInputAction;
 class UInputMappingContext;
 class USpringArmComponent;
@@ -44,6 +45,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "CW|Vehicle")
 	ACWPlayerCharacter* GetDriver() const { return Driver; }
+
+	UFUNCTION(BlueprintPure, Category = "CW|Vehicle|FX")
+	UCWVehicleFXComponent* GetVisualFX() const { return VisualFX; }
 
 	// ICWInteractable
 	virtual void Interact_Implementation(AActor* Interactor) override;
@@ -85,6 +89,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Vehicle")
 	TObjectPtr<UStaticMeshComponent> BodyMesh;
+
+	/** Polvo de excavacion/carga y huellas de orugas (H4 / F5.04). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Vehicle|FX")
+	TObjectPtr<UCWVehicleFXComponent> VisualFX;
+
+	/** Punto de anclaje fisico del conductor dentro de la cabina (F5.06). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Vehicle|Seat")
+	TObjectPtr<USceneComponent> DriverSeatPoint;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Vehicle")
 	TObjectPtr<USpringArmComponent> CameraBoom;

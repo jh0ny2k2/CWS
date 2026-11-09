@@ -4,6 +4,7 @@
 #include "CWLog.h"
 #include "CWTerrainField.h"
 #include "CWTerrainSubsystem.h"
+#include "CWVehicleFXComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
@@ -19,6 +20,8 @@
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "Materials/MaterialInterface.h"
+#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -34,6 +37,27 @@ ACWExcavator::ACWExcavator()
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+
+	// Materiales PBR de H4 (F5.03). Si falta alguno, el componente conserva el
+	// material del motor y el juego sigue funcionando.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> YellowMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_ConstructionYellow.MI_CW_ConstructionYellow"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> SteelMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_HeavySteel.MI_CW_HeavySteel"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RubberMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Rubber.MI_CW_Rubber"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> ChromeMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Chrome.MI_CW_Chrome"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GlassMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_Glass.MI_CW_Glass"));
+
+	const auto ApplyMaterial = [](UStaticMeshComponent* Component, UMaterialInterface* Material)
+	{
+		if (Component && Material)
+		{
+			Component->SetMaterial(0, Material);
+		}
+	};
 
 	// Orugas izquierda/derecha (F2.05): dos cajas largas bajo el chasis.
 	TrackLeftMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrackLeftMesh"));
@@ -80,6 +104,10 @@ ACWExcavator::ACWExcavator()
 	TurretMount->SetupAttachment(CollisionBox);
 	TurretMount->SetRelativeLocation(FVector(-40.f, 0.f, 70.f));
 
+	// El conductor se ancla dentro de la cabina, que gira con la torreta (F5.06).
+	DriverSeatPoint->SetupAttachment(TurretMount);
+	DriverSeatPoint->SetRelativeLocation(FVector(10.f, -90.f, 70.f));
+
 	TurretMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TurretMesh"));
 	TurretMesh->SetupAttachment(TurretMount);
 	TurretMesh->SetRelativeLocation(FVector(0.f, 0.f, 70.f));
@@ -90,10 +118,75 @@ ACWExcavator::ACWExcavator()
 		TurretMesh->SetStaticMesh(CubeMesh.Object);
 	}
 
-	// Camara de cabina (F2.06): fija a la torreta.
+	// --- Cabina detallada e interior (F5.01 / F5.06) -------------------------
+	// La cabina va montada sobre la torreta, a la izquierda, como en una excavadora real.
+	UStaticMesh* CubeAsset = CubeMesh.Succeeded() ? CubeMesh.Object : nullptr;
+	auto CreateCabinPart = [this, CubeAsset](const TCHAR* Name, const FVector& Location,
+		const FVector& Scale)
+	{
+		UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+		Part->SetupAttachment(TurretMount);
+		Part->SetRelativeLocation(Location);
+		Part->SetRelativeScale3D(Scale);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Part->SetGenerateOverlapEvents(false);
+		if (CubeAsset)
+		{
+			Part->SetStaticMesh(CubeAsset);
+		}
+		return Part;
+	};
+
+	CabinMesh = CreateCabinPart(TEXT("CabinMesh"), FVector(10.f, -90.f, 150.f), FVector(1.5f, 1.5f, 1.5f));
+	CabinRoofMesh = CreateCabinPart(TEXT("CabinRoofMesh"), FVector(10.f, -90.f, 228.f), FVector(1.65f, 1.65f, 0.12f));
+	CabinGlassMesh = CreateCabinPart(TEXT("CabinGlassMesh"), FVector(85.f, -90.f, 165.f), FVector(0.04f, 1.36f, 0.95f));
+	CabinGlassLeftMesh = CreateCabinPart(TEXT("CabinGlassLeftMesh"), FVector(10.f, -166.f, 165.f), FVector(1.36f, 0.04f, 0.95f));
+	CabinGlassRightMesh = CreateCabinPart(TEXT("CabinGlassRightMesh"), FVector(10.f, -14.f, 165.f), FVector(1.36f, 0.04f, 0.95f));
+	OperatorSeatMesh = CreateCabinPart(TEXT("OperatorSeatMesh"), FVector(-28.f, -90.f, 103.f), FVector(0.5f, 0.5f, 0.18f));
+	DashboardMesh = CreateCabinPart(TEXT("DashboardMesh"), FVector(58.f, -90.f, 124.f), FVector(0.12f, 1.1f, 0.38f));
+
+	// Contrapeso trasero y tubo de escape.
+	CounterweightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CounterweightMesh"));
+	CounterweightMesh->SetupAttachment(CollisionBox);
+	CounterweightMesh->SetRelativeLocation(FVector(-258.f, 0.f, 18.f));
+	CounterweightMesh->SetRelativeScale3D(FVector(1.0f, 3.0f, 1.1f));
+	CounterweightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CubeMesh.Succeeded())
+	{
+		CounterweightMesh->SetStaticMesh(CubeMesh.Object);
+	}
+
+	ExhaustMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExhaustMesh"));
+	ExhaustMesh->SetupAttachment(TurretMount);
+	ExhaustMesh->SetRelativeLocation(FVector(-140.f, 80.f, 235.f));
+	ExhaustMesh->SetRelativeScale3D(FVector(0.16f, 0.16f, 1.4f));
+	ExhaustMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (CylinderMesh.Succeeded())
+	{
+		ExhaustMesh->SetStaticMesh(CylinderMesh.Object);
+	}
+
+	// Dientes de la cuchara: cuatro cajas pequenas en el borde de ataque.
+	BucketTeethMeshes.Reset();
+	for (int32 ToothIndex = 0; ToothIndex < 4; ++ToothIndex)
+	{
+		UStaticMeshComponent* Tooth = CreateDefaultSubobject<UStaticMeshComponent>(
+			*FString::Printf(TEXT("BucketTooth_%d"), ToothIndex));
+		Tooth->SetupAttachment(BucketPivot);
+		Tooth->SetRelativeLocation(FVector(92.f, -45.f + ToothIndex * 30.f, -66.f));
+		Tooth->SetRelativeScale3D(FVector(0.14f, 0.12f, 0.16f));
+		Tooth->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (CubeMesh.Succeeded())
+		{
+			Tooth->SetStaticMesh(CubeMesh.Object);
+		}
+		BucketTeethMeshes.Add(Tooth);
+	}
+
+	// Camara de cabina (F2.06): fija a la torreta, dentro del habitaculo.
 	CabinCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CabinCamera"));
 	CabinCamera->SetupAttachment(TurretMount);
-	CabinCamera->SetRelativeLocation(FVector(0.f, 0.f, 160.f));
+	CabinCamera->SetRelativeLocation(FVector(30.f, -90.f, 178.f));
 	CabinCamera->SetRelativeRotation(FRotator(-5.f, 0.f, 0.f));
 	CabinCamera->bUsePawnControlRotation = true;
 	CabinCamera->bAutoActivate = false;
@@ -190,6 +283,66 @@ ACWExcavator::ACWExcavator()
 	HydraulicAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("HydraulicAudio"));
 	HydraulicAudio->SetupAttachment(TurretMount);
 	HydraulicAudio->bAutoActivate = false;
+
+	// Audio real de H4 (F5.05): diesel e hidraulica con atenuacion espacial.
+	static ConstructorHelpers::FObjectFinder<USoundBase> EngineSoundFinder(
+		TEXT("/Game/ConstructionWorld/Audio/SW_CW_DieselEngine.SW_CW_DieselEngine"));
+	if (EngineSoundFinder.Succeeded())
+	{
+		EngineSound = EngineSoundFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> HydraulicSoundFinder(
+		TEXT("/Game/ConstructionWorld/Audio/SW_CW_HydraulicPump.SW_CW_HydraulicPump"));
+	if (HydraulicSoundFinder.Succeeded())
+	{
+		HydraulicSound = HydraulicSoundFinder.Object;
+	}
+
+	USoundAttenuation* MachineAttenuation = CreateDefaultSubobject<USoundAttenuation>(
+		TEXT("ExcavatorAttenuation"));
+	MachineAttenuation->Attenuation.bAttenuate = true;
+	MachineAttenuation->Attenuation.bSpatialize = true;
+	MachineAttenuation->Attenuation.AttenuationShape = EAttenuationShape::Sphere;
+	MachineAttenuation->Attenuation.AttenuationShapeExtents = FVector(350.f, 0.f, 0.f);
+	MachineAttenuation->Attenuation.FalloffDistance = 4500.f;
+	MachineAttenuation->Attenuation.bAttenuateWithLPF = true;
+	MachineAttenuation->Attenuation.LPFRadiusMin = 400.f;
+	MachineAttenuation->Attenuation.LPFRadiusMax = 4000.f;
+	EngineAudio->AttenuationSettings = MachineAttenuation;
+	HydraulicAudio->AttenuationSettings = MachineAttenuation;
+
+	// Materiales PBR por pieza (F5.03).
+	ApplyMaterial(BodyMesh.Get(), YellowMat.Object);
+	ApplyMaterial(TurretMesh.Get(), YellowMat.Object);
+	ApplyMaterial(CabinMesh.Get(), YellowMat.Object);
+	ApplyMaterial(CabinRoofMesh.Get(), SteelMat.Object);
+	ApplyMaterial(CabinGlassMesh.Get(), GlassMat.Object);
+	ApplyMaterial(CabinGlassLeftMesh.Get(), GlassMat.Object);
+	ApplyMaterial(CabinGlassRightMesh.Get(), GlassMat.Object);
+	ApplyMaterial(OperatorSeatMesh.Get(), RubberMat.Object);
+	ApplyMaterial(DashboardMesh.Get(), SteelMat.Object);
+	ApplyMaterial(CounterweightMesh.Get(), SteelMat.Object);
+	ApplyMaterial(ExhaustMesh.Get(), ChromeMat.Object);
+	ApplyMaterial(TrackLeftMesh.Get(), RubberMat.Object);
+	ApplyMaterial(TrackRightMesh.Get(), RubberMat.Object);
+	ApplyMaterial(SprocketLeftFront.Get(), SteelMat.Object);
+	ApplyMaterial(SprocketLeftRear.Get(), SteelMat.Object);
+	ApplyMaterial(SprocketRightFront.Get(), SteelMat.Object);
+	ApplyMaterial(SprocketRightRear.Get(), SteelMat.Object);
+	ApplyMaterial(BoomMesh.Get(), YellowMat.Object);
+	ApplyMaterial(ArmMesh.Get(), YellowMat.Object);
+	ApplyMaterial(BucketMesh.Get(), SteelMat.Object);
+	ApplyMaterial(BoomCylinderLeft.Get(), ChromeMat.Object);
+	ApplyMaterial(BoomCylinderRight.Get(), ChromeMat.Object);
+	ApplyMaterial(ArmCylinderLeft.Get(), ChromeMat.Object);
+	ApplyMaterial(ArmCylinderRight.Get(), ChromeMat.Object);
+	ApplyMaterial(BucketCylinderLeft.Get(), ChromeMat.Object);
+	ApplyMaterial(BucketCylinderRight.Get(), ChromeMat.Object);
+	for (UStaticMeshComponent* Tooth : BucketTeethMeshes)
+	{
+		ApplyMaterial(Tooth, SteelMat.Object);
+	}
 
 	// Estado inicial coherente con los angulos declarados en la cabecera.
 	ApplyJointRotations();
@@ -299,6 +452,7 @@ void ACWExcavator::Tick(float DeltaSeconds)
 		DriveInput = FVector2D::ZeroVector;
 		LeftTrackSpeed = 0.f;
 		RightTrackSpeed = 0.f;
+		HydraulicActivity = 0.f;
 		ApplyJointRotations();
 		UpdateHydraulics();
 		return;
@@ -342,6 +496,11 @@ void ACWExcavator::Tick(float DeltaSeconds)
 		|| !FMath::IsNearlyZero(TargetBucketInput)
 		|| !FMath::IsNearlyZero(TargetTurretInput);
 
+	HydraulicActivity = bHydraulicMoving
+		? FMath::Clamp(FMath::Abs(TargetBoomInput) + FMath::Abs(TargetArmInput)
+			+ FMath::Abs(TargetBucketInput) + FMath::Abs(TargetTurretInput), 0.f, 1.f)
+		: 0.f;
+
 	if (HydraulicSound && HydraulicAudio)
 	{
 		if (bHydraulicMoving && !bHydraulicAudioActive)
@@ -354,6 +513,12 @@ void ACWExcavator::Tick(float DeltaSeconds)
 		{
 			HydraulicAudio->Stop();
 			bHydraulicAudioActive = false;
+		}
+
+		if (bHydraulicAudioActive)
+		{
+			HydraulicAudio->SetVolumeMultiplier(0.55f + 0.45f * HydraulicActivity);
+			HydraulicAudio->SetPitchMultiplier(0.9f + 0.3f * HydraulicActivity);
 		}
 	}
 
@@ -376,8 +541,16 @@ void ACWExcavator::UpdateEngine(float DeltaSeconds)
 		+ (FMath::Abs(TargetBoomInput) + FMath::Abs(TargetArmInput) + FMath::Abs(TargetBucketInput)) * 0.3f,
 		0.f, 1.f);
 	const float LoadFactor = 0.35f + 0.65f * Demand;
+	EngineLoadRatio = LoadFactor;
 
 	FuelLiters -= FuelConsumptionLitersPerHour * LoadFactor * (DeltaSeconds / 3600.f);
+
+	// El sonido del motor sube de vueltas con la demanda (F5.05).
+	if (EngineAudio && EngineAudio->IsPlaying())
+	{
+		EngineAudio->SetPitchMultiplier(0.82f + 0.55f * Demand);
+		EngineAudio->SetVolumeMultiplier(0.75f + 0.25f * Demand);
+	}
 
 	if (FuelLiters <= 0.f)
 	{
@@ -599,6 +772,8 @@ void ACWExcavator::StopEngine()
 	}
 
 	bEngineRunning = false;
+	EngineLoadRatio = 0.f;
+	HydraulicActivity = 0.f;
 	TargetTurretInput = 0.f;
 	TargetBoomInput = 0.f;
 	TargetArmInput = 0.f;
@@ -660,6 +835,11 @@ bool ACWExcavator::DigOrLoadTruck()
 			if (Moved > KINDA_SMALL_NUMBER)
 			{
 				BucketLoadCubicMeters = FMath::Max(0.f, BucketLoadCubicMeters - Moved);
+				if (VisualFX)
+				{
+					VisualFX->EmitDust(Truck->GetBedCenterLocation(),
+						CWSoil::GetSoilProperties(BucketSoilType).Color, 9, 0.95f);
+				}
 				UE_LOG(LogCWVehicle, Log,
 					TEXT("CWExcavator: descargados %.2f m3 en el camion (cuchara: %.2f m3)."),
 					Moved, BucketLoadCubicMeters);
@@ -678,6 +858,11 @@ bool ACWExcavator::DigOrLoadTruck()
 				if (Deposited > KINDA_SMALL_NUMBER)
 				{
 					BucketLoadCubicMeters = FMath::Max(0.f, BucketLoadCubicMeters - Deposited);
+					if (VisualFX)
+					{
+						VisualFX->EmitDust(GetBucketTipLocation(),
+							CWSoil::GetSoilProperties(BucketSoilType).Color, 11, 1.1f);
+					}
 					UE_LOG(LogCWVehicle, Log,
 						TEXT("CWExcavator: vertidos %.2f m3 de %s en el terreno (cuchara: %.2f m3)."),
 						Deposited, *GetBucketSoilName(), BucketLoadCubicMeters);
@@ -710,6 +895,11 @@ bool ACWExcavator::DigOrLoadTruck()
 					{
 						BucketLoadCubicMeters = FMath::Min(Removed, BucketCapacityCubicMeters);
 						BucketSoilType = SoilType;
+						if (VisualFX)
+						{
+							VisualFX->EmitDust(Tip + FVector(0.f, 0.f, 20.f),
+								CWSoil::GetSoilProperties(SoilType).Color, 14, 1.3f);
+						}
 						UE_LOG(LogCWVehicle, Log,
 							TEXT("CWExcavator: cuchara llena con %.2f m3 de %s del terreno."),
 							BucketLoadCubicMeters, *GetBucketSoilName());
@@ -729,6 +919,10 @@ bool ACWExcavator::DigOrLoadTruck()
 
 	BucketLoadCubicMeters = BucketCapacityCubicMeters;
 	BucketSoilType = ECWSoilType::Earth;
+	if (VisualFX)
+	{
+		VisualFX->EmitDust(GetBucketTipLocation(), CWSoil::GetSoilProperties(ECWSoilType::Earth).Color, 7, 0.9f);
+	}
 	UE_LOG(LogCWVehicle, Log, TEXT("CWExcavator: cuchara llena (%.2f m3)."), BucketLoadCubicMeters);
 	return true;
 }

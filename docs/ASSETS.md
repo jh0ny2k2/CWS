@@ -18,22 +18,29 @@ Resumen actual (detalle en `docs/assets_manifest.json`):
 
 | Categoría | Prototipo | Planificado | Total |
 |---|---|---|---|
-| Vehículos | 1 (excavadora) | 3 | 4 |
-| Personajes | 0 | 1 | 1 |
-| Materiales | 0 | 3 | 3 |
-| Entorno | 0 | 2 | 2 |
-| Audio | 0 | 1 | 1 |
+| Vehículos | 2 (excavadora, volquete) | 2 | 4 |
+| Personajes | 1 (operario) | 1 | 2 |
+| Materiales | 1 (PBR H4) | 2 | 3 |
+| Efectos | 1 (polvo/huellas/lluvia) | 0 | 1 |
+| Entorno | 1 (decorado H4) | 2 | 3 |
+| Audio | 1 (motor/hidráulica H4) | 1 | 2 |
 | UI | 0 | 1 | 1 |
+
+Total: 16 assets (7 prototipo, 9 planificados).
 
 ## 3. Assets de prototipo (ya en el proyecto)
 
 | ID | Asset | Implementación | Licencia |
 |---|---|---|---|
-| AST-001 | Excavadora de cadenas | Jerarquía de cubos de `/Engine/BasicShapes/Cube` en `ACWExcavator` | Contenido de Unreal Engine (Epic Games) |
-| AST-002 | Camión volquete | `ACWDumpTruck` con cubos y cilindros de `/Engine/BasicShapes` (chasis, ruedas y caja basculante) | Contenido de Unreal Engine (Epic Games) |
+| AST-001 | Excavadora de cadenas | Jerarquía de cubos de `/Engine/BasicShapes/Cube` en `ACWExcavator` (H4: cabina, cristales, asiento, contrapeso y dientes) | Contenido de Unreal Engine (Epic Games) |
+| AST-002 | Camión volquete | `ACWDumpTruck` con cubos y cilindros de `/Engine/BasicShapes` (H4: cabina, parabrisas, escape, depósito y caja detallada) | Contenido de Unreal Engine (Epic Games) |
 | AST-003 | Operario | Cubo placeholder de `ACWPlayerCharacter` | Contenido de Unreal Engine (Epic Games) |
+| AST-013 | Materiales PBR con suciedad | `M_CW_MasterPBR` + 11 `MI_CW_*` generados por `Scripts/Python/cw_build_pbr_materials.py` | Propiedad del proyecto |
+| AST-014 | Efectos de polvo, huellas y lluvia | `M_CW_TranslucentFX` con `UCWVehicleFXComponent` (32 polvos / 48 huellas) y `ACWWeatherSystem` (700 gotas instanciadas) | Propiedad del proyecto |
+| AST-015 | Audio de motor e hidráulica | `SW_CW_DieselEngine` y `SW_CW_HydraulicPump` con atenuación espacial y modulación por carga | Propiedad del proyecto |
+| AST-016 | Decorado de obra del TestLevel | Conos, barreras, contenedor, palets, tuberías, montículos y colinas generados por `cw_build_test_level.py` | Contenido de Unreal Engine (Epic Games) |
 
-Los tres son **provisionales**: sirven para validar física, controles y jerarquías, no para el resultado visual final.
+Los assets de prototipo sirven para validar física, controles, jerarquías y el look de H4; no son el resultado visual final.
 
 ## 4. Assets planificados y fuentes recomendadas
 

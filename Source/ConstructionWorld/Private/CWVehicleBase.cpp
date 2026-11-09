@@ -2,6 +2,7 @@
 
 #include "CWPlayerCharacter.h"
 #include "CWLog.h"
+#include "CWVehicleFXComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -9,6 +10,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -39,6 +41,21 @@ ACWVehicleBase::ACWVehicleBase()
 	{
 		BodyMesh->SetStaticMesh(CubeMesh.Object);
 	}
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> YellowMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_ConstructionYellow.MI_CW_ConstructionYellow"));
+	if (YellowMat.Succeeded())
+	{
+		BodyMesh->SetMaterial(0, YellowMat.Object);
+	}
+
+	// H4 (F5.04): polvo y huellas reutilizables por toda la maquinaria.
+	VisualFX = CreateDefaultSubobject<UCWVehicleFXComponent>(TEXT("VisualFX"));
+	VisualFX->SetupAttachment(CollisionBox);
+
+	DriverSeatPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DriverSeatPoint"));
+	DriverSeatPoint->SetupAttachment(CollisionBox);
+	DriverSeatPoint->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(CollisionBox);
@@ -215,19 +232,26 @@ bool ACWVehicleBase::TryEnter(ACWPlayerCharacter* Player)
 		Movement->DisableMovement();
 	}
 
-	// BUG-007 mitigado: adjuntamos al BodyMesh. Si DriverSeat no existe en el placeholder
-	// Unreal usa el origen del mesh (comportamiento seguro). Se avisa en log.
-	if (!BodyMesh->DoesSocketExist(DriverSeatSocket))
+	// Anclaje al puesto de conduccion (F5.06)
+	if (DriverSeatPoint)
 	{
-		UE_LOG(LogCWVehicle, Warning,
-			TEXT("CWVehicleBase: El socket '%s' no existe en BodyMesh. "
-			     "Se usara el origen del mesh hasta que se modele la cabina."),
-			*DriverSeatSocket.ToString());
+		Player->AttachToComponent(
+			DriverSeatPoint,
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	}
-	Player->AttachToComponent(
-		BodyMesh,
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		DriverSeatSocket);
+	else if (BodyMesh->DoesSocketExist(DriverSeatSocket))
+	{
+		Player->AttachToComponent(
+			BodyMesh,
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			DriverSeatSocket);
+	}
+	else
+	{
+		Player->AttachToComponent(
+			BodyMesh,
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	}
 
 	PC->Possess(this);
 	return true;

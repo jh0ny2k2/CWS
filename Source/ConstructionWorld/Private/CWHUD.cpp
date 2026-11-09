@@ -103,6 +103,11 @@ void ACWHUD::DrawHUD()
 					}
 				}
 			}
+
+			if (Excavator->GetActiveCameraIndex() == 1)
+			{
+				DrawCabinInstruments(*Excavator, CenterX, CenterY);
+			}
 		}
 		else if (const ACWDumpTruck* Truck = Cast<ACWDumpTruck>(Pawn))
 		{
@@ -162,4 +167,69 @@ void ACWHUD::DrawHUD()
 		nullptr,
 		1.1f,
 		false);
+}
+
+void ACWHUD::DrawCabinInstruments(const ACWExcavator& Excavator, float CenterX, float CenterY)
+{
+	const float PanelWidth = 540.f;
+	const float PanelHeight = 140.f;
+	const float PanelX = CenterX - PanelWidth * 0.5f;
+	const float PanelY = Canvas->SizeY - PanelHeight - 36.f;
+
+	// Fondo y banda superior de la consola.
+	DrawRect(FLinearColor(0.015f, 0.018f, 0.022f, 0.78f), PanelX, PanelY, PanelWidth, PanelHeight);
+	DrawRect(FLinearColor(1.f, 0.72f, 0.05f, 0.95f), PanelX, PanelY, PanelWidth, 4.f);
+
+	DrawText(TEXT("CABINA  ·  EXCAVADORA"), FLinearColor(1.f, 0.82f, 0.25f, 0.95f),
+		PanelX + 16.f, PanelY + 10.f, nullptr, 0.85f, false);
+
+	const FString EngineText = FString::Printf(TEXT("MOTOR  %.0f rpm"), Excavator.GetEngineRpm());
+	DrawText(EngineText, FLinearColor(0.82f, 0.9f, 0.95f, 0.95f),
+		PanelX + PanelWidth - 190.f, PanelY + 10.f, nullptr, 0.82f, false);
+
+	auto DrawGauge = [this](float X, float Y, const FString& Label, const FString& Value,
+		float Ratio, const FLinearColor& FillColor)
+	{
+		DrawText(Label, FLinearColor(0.72f, 0.78f, 0.82f, 0.95f), X, Y, nullptr, 0.78f, false);
+
+		const float BarWidth = 220.f;
+		const float BarHeight = 13.f;
+		const float BarY = Y + 17.f;
+
+		DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.65f), X, BarY, BarWidth, BarHeight);
+		DrawRect(FillColor, X, BarY,
+			BarWidth * FMath::Clamp(Ratio, 0.f, 1.f), BarHeight);
+
+		DrawText(Value, FLinearColor::White, X + BarWidth + 8.f, Y + 2.f, nullptr, 0.75f, false);
+	};
+
+	const float LeftX = PanelX + 16.f;
+	const float RightX = PanelX + 286.f;
+
+	const float RpmRatio = FMath::Clamp(Excavator.GetEngineRpm() / 2300.f, 0.f, 1.f);
+	const FLinearColor RpmColor = RpmRatio > 0.82f
+		? FLinearColor(0.95f, 0.25f, 0.15f, 1.f)
+		: FLinearColor(0.35f, 0.85f, 0.45f, 1.f);
+	DrawGauge(LeftX, PanelY + 40.f, TEXT("REGIMEN"), FString::Printf(TEXT("%.0f rpm"),
+		Excavator.GetEngineRpm()), RpmRatio, RpmColor);
+
+	DrawGauge(RightX, PanelY + 40.f, TEXT("COMBUSTIBLE"),
+		FString::Printf(TEXT("%.0f%%  %.0f L"), Excavator.GetFuelRatio() * 100.f,
+			Excavator.GetFuelLiters()),
+		Excavator.GetFuelRatio(), FLinearColor(1.f, 0.72f, 0.1f, 1.f));
+
+	DrawGauge(LeftX, PanelY + 82.f, TEXT("PRESION HIDRAULICA"),
+		FString::Printf(TEXT("%.0f bar"), Excavator.GetHydraulicPressureBar()),
+		Excavator.GetHydraulicActivity(), FLinearColor(0.2f, 0.75f, 0.95f, 1.f));
+
+	DrawGauge(RightX, PanelY + 82.f, TEXT("CUCHARA"),
+		FString::Printf(TEXT("%.2f / %.1f m3"), Excavator.GetBucketLoadCubicMeters(),
+			Excavator.GetBucketCapacityCubicMeters()),
+		Excavator.GetBucketCapacityCubicMeters() > 0.f
+			? Excavator.GetBucketLoadCubicMeters() / Excavator.GetBucketCapacityCubicMeters()
+			: 0.f,
+		FLinearColor(0.72f, 0.5f, 0.22f, 1.f));
+
+	DrawText(TEXT("C: camara   P: instrumentos  "), FLinearColor(0.55f, 0.6f, 0.65f, 0.8f),
+		PanelX + 16.f, PanelY + 120.f, nullptr, 0.65f, false);
 }

@@ -75,6 +75,13 @@ ACWPlayerCharacter::ACWPlayerCharacter()
 	{
 		PlaceholderMesh->SetStaticMesh(CubeMesh.Object);
 	}
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> YellowMat(
+		TEXT("/Game/ConstructionWorld/Materials/MI_CW_ConstructionYellow.MI_CW_ConstructionYellow"));
+	if (YellowMat.Succeeded())
+	{
+		PlaceholderMesh->SetMaterial(0, YellowMat.Object);
+	}
 }
 
 void ACWPlayerCharacter::BeginPlay()

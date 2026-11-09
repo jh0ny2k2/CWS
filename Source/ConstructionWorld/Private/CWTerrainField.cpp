@@ -59,7 +59,8 @@ ACWTerrainField::ACWTerrainField()
 		TEXT("/Engine/BasicShapes/BasicShapeMaterial"));
 	if (DefaultMaterial.Succeeded())
 	{
-		TerrainMaterialAsset = DefaultMaterial.Object;
+		static ConstructorHelpers::FObjectFinder<UMaterialInterface> MasterPBR(TEXT("/Game/ConstructionWorld/Materials/M_CW_MasterPBR.M_CW_MasterPBR"));
+		TerrainMaterialAsset = MasterPBR.Succeeded() ? MasterPBR.Object : DefaultMaterial.Object;
 	}
 }
 
@@ -389,6 +390,9 @@ void ACWTerrainField::UpdateMaterialColor()
 	{
 		TerrainMaterial->SetVectorParameterValue(
 			TEXT("Color"), CWSoil::GetSoilProperties(DefaultSoilType).Color);
+		TerrainMaterial->SetVectorParameterValue(TEXT("BaseColor"), CWSoil::GetSoilProperties(DefaultSoilType).Color);
+		TerrainMaterial->SetScalarParameterValue(TEXT("Roughness"), 0.92f);
+		TerrainMaterial->SetScalarParameterValue(TEXT("Metallic"), 0.0f);
 	}
 }
 

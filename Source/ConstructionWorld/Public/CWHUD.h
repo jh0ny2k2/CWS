@@ -20,4 +20,8 @@ class CONSTRUCTIONWORLD_API ACWHUD : public AHUD
 
 public:
 	virtual void DrawHUD() override;
+
+protected:
+	/** Panel de instrumentacion de cabina (H4 / F5.06). */
+	void DrawCabinInstruments(const class ACWExcavator& Excavator, float CenterX, float CenterY);
 };

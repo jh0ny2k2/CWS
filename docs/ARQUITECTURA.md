@@ -61,11 +61,21 @@ Criterios de aceptación del prototipo: 60 FPS en RTX 3060 con ajustes medios, d
 ## 5. Vehículos y maquinaria
 
 - `ACWVehicleBase` (Pawn) + componentes: motor, transmisión, hidráulica, orugas/ruedas, combustible, desgaste.
-- `ACWExcavator` (H1-B): jerarquía articulada chasis → torreta → pluma → brazo → cuchara con límites angulares, seis cilindros hidráulicos recolocados entre anclajes, orugas diferenciales con agarre por traza, tres cámaras, motor/combustible y modelo estático de estabilidad (centro de masas vs. poligonal de apoyo). Prototipo con mallas de Engine; el asset AAA queda para H4.
-- `ACWDumpTruck` (H1-B): rig con cuatro ruedas y caja basculante, conducción por trazas de rueda (agarre, pendiente y peso), carga abstracta en m³ con densidad y descarga validada.
+- `ACWExcavator` (H1-B): jerarquía articulada chasis → torreta → pluma → brazo → cuchara con límites angulares, seis cilindros hidráulicos recolocados entre anclajes, orugas diferenciales con agarre por traza, tres cámaras, motor/combustible y modelo estático de estabilidad (centro de masas vs. poligonal de apoyo). En H4 se añaden cabina con cristales, asiento, salpicadero, contrapeso, escape y dientes, con materiales PBR.
+- `ACWDumpTruck` (H1-B): rig con cuatro ruedas y caja basculante, conducción por trazas de rueda (agarre, pendiente y peso), carga abstracta en m³ con densidad y descarga validada. En H4 se añaden cabina, parabrisas, parachoques, escape vertical, depósito y paredes/compuerta de caja con materiales PBR.
 - `ACWDumpZone`: trigger de descarga con capacidad y evento `OnLoadDelivered`; el progreso se calcula con material realmente entregado.
 - Cada máquina declara capacidades en un Data Asset (`Cuchara 1.2 m³`, `Carga máx. 8 t`), usadas por contratos e IA.
 - Cámara de cabina, instrumentación y entrada/salida mediante un único componente `CWInteractionComponent` en el personaje.
+
+### 5.1 Pulido visual, ambiental y sonoro (H4)
+
+- `M_CW_MasterPBR`: material maestro con `BaseColor`, `DirtColor`, `DirtAmount`, `Metallic` y `Roughness`; la suciedad se mezcla con ruido procedural. Sus instancias (`MI_CW_*`) cubren pintura de obra, acero, goma, cromo, cristal, tierra, grava, hormigón, madera, conos y contenedores.
+- `M_CW_TranslucentFX`: material unlit translúcido con `Color` y `Opacity`, compartido por polvo, huellas y lluvia.
+- `UCWVehicleFXComponent`: pools reutilizables de polvo (32 esferas) y huellas (48 planos) sin colisión ni sombras; las huellas hacen *line trace* al suelo y caducan.
+- `ACWWeatherSystem`: lluvia con 700 gotas en un único `UInstancedStaticMeshComponent`, viento y reciclado; activa además sol tenue, luz de cielo fría y niebla densa. Comandos `cw.Weather.Rain` y `cw.Weather.Status`.
+- Iluminación del nivel: sol bajo (3800 K), `SkyAtmosphere`, `SkyLight` con captura en tiempo real, niebla volumétrica y `PostProcessVolume` global con exposición histograma, bloom, AO, viñeta y color grading cálido.
+- Audio: `SW_CW_DieselEngine` y `SW_CW_HydraulicPump` con `USoundAttenuation` espacial y modulación por régimen/carga tanto en excavadora como en volquete.
+- HUD de cabina: régimen, combustible, presión hidráulica y carga de cuchara al usar la cámara interior.
 
 ## 6. Contratos, economía y guardado
 
@@ -109,7 +119,7 @@ La hoja de ruta oficial es el Plan Maestro (`docs/Plan_Maestro_v1.0.pdf`). Sus h
 | H1-B. Maquinaria | Excavadora y camión funcionales | **Completado** (excavadora articulada con orugas, hidráulica y estabilidad; volquete con ruedas por traza, caja y zona de descarga; `cw.Test.Excavator` y `cw.Test.Truck` en PASS) |
 | H2. Terreno | Prototipo de excavación validado (riesgo máximo) | **Completado** (heightfield por chunks `ACWTerrainField`, 4 tipos de suelo, integración con cuchara y volquete, persistencia con checksum, `cw.Test.Terrain` con 6 tests en PASS) |
 | H3. Contratos y vertical slice | Ciclo contractual completo + guardado (CWS-001) | Pendiente |
-| H4. Pulido gráfico y sonoro | Assets y pulido visual | Pendiente |
+| H4. Pulido gráfico y sonoro | Assets y pulido visual | **Completado** (materiales PBR con suciedad, iluminación de tarde y postproceso, cabinas detalladas con instrumentación, polvo y huellas, audio espacial de motor/hidráulica y lluvia con `cw.Weather.Rain`; `-CWTestExcavator`, `-CWTestTruck` y `-CWTestTerrain` en PASS) |
 | H5. Mundo abierto | Ciudad, carretera, streaming | Pendiente |
 | H6. Construcción y empresa | Fases de obra, economía | Pendiente |
 | H7. IA, clima y escalado | Trabajadores, planificación, clima | Pendiente |

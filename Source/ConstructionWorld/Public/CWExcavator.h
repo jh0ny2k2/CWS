@@ -114,6 +114,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
 	float GetFuelRatio() const { return MaxFuelLiters > 0.f ? FuelLiters / MaxFuelLiters : 0.f; }
 
+	/** Carga instantanea del motor 0..1 (H4 / F5.06: instrumentacion de cabina). */
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
+	float GetEngineLoadRatio() const { return EngineLoadRatio; }
+
+	/** Regimen mostrado en el cuentarrevoluciones de cabina. */
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
+	float GetEngineRpm() const { return bEngineRunning ? 800.f + EngineLoadRatio * 1400.f : 0.f; }
+
+	/** Actividad hidraulica 0..1 (brazo, cuchara y torreta en movimiento). */
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
+	float GetHydraulicActivity() const { return HydraulicActivity; }
+
+	/** Presion hidraulica estimada para el manometro de cabina. */
+	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
+	float GetHydraulicPressureBar() const { return 18.f + HydraulicActivity * 232.f; }
+
 	/** Anade combustible (litros). Devuelve lo realmente anadido. */
 	UFUNCTION(BlueprintCallable, Category = "CW|Excavator|Engine")
 	float Refuel(float Liters);
@@ -319,6 +335,37 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Hierarchy")
 	TObjectPtr<UStaticMeshComponent> TurretMesh;
 
+	// Cabina e interior (F5.01 / F5.06)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinRoofMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinGlassMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinGlassLeftMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CabinGlassRightMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> OperatorSeatMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> DashboardMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> ExhaustMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TObjectPtr<UStaticMeshComponent> CounterweightMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Cabin")
+	TArray<TObjectPtr<UStaticMeshComponent>> BucketTeethMeshes;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Excavator|Hierarchy")
 	TObjectPtr<USceneComponent> BoomPivot;
 
@@ -454,4 +501,8 @@ protected:
 
 	// Estado de audio
 	bool bHydraulicAudioActive = false;
+
+	// Instrumentacion de cabina (H4 / F5.06)
+	float EngineLoadRatio = 0.f;
+	float HydraulicActivity = 0.f;
 };

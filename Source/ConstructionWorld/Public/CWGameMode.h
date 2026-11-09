@@ -15,4 +15,6 @@ class CONSTRUCTIONWORLD_API ACWGameMode : public AGameModeBase
 
 public:
 	ACWGameMode();
+
+	virtual void BeginPlay() override;
 };
