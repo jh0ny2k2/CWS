@@ -50,11 +50,16 @@ public:
 	/** Programa la bateria de pruebas del terreno deformable (H2: T-001..T-006). */
 	void StartTerrainTest(bool bExitWhenDone);
 
+	/** Programa la prueba de apoyo sobre el suelo: plano, rampa de frente/lado y caida. */
+	void StartGroundFollowTest(bool bExitWhenDone);
+
 private:
 	void RunEnterExitTest();
 	void RunExcavatorStabilityTest();
 	void RunTruckDumpTest();
 	void RunTerrainTest();
+	void SetupGroundFollowTest();
+	void CheckGroundFollowTest();
 	bool SpawnExcavatorForTest();
 	bool SpawnTruckAndZoneForTest();
 	bool SpawnTerrainForTest();
@@ -93,6 +98,14 @@ private:
 	FTimerHandle ExcavatorTimer;
 	FTimerHandle TruckTimer;
 	FTimerHandle TerrainTimer;
+	FTimerHandle GroundTimer;
+
+	/** Vehiculos de la prueba de suelo: 0 plano, 1 rampa de frente, 2 rampa de lado, 3 caida. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<ACWVehicleBase>> GroundVehicles;
+
+	/** Normal de la superficie bajo cada vehiculo; el eje Z del chasis debe coincidir. */
+	TArray<FVector> GroundExpectedNormal;
 
 	int32 PendingCycles = 0;
 	int32 InitialCharacterCount = 0;

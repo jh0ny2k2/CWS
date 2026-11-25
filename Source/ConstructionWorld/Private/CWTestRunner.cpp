@@ -12,6 +12,9 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -999,4 +1002,165 @@ static FAutoConsoleCommandWithWorldAndArgs GCWTestTerrain(
 			}
 
 			Runner->StartTerrainTest(false);
+		}));
+
+// --- Prueba de apoyo sobre el suelo (UpdateGroundFollow) -------------------------------
+
+void ACWTestRunner::StartGroundFollowTest(bool bInExitWhenDone)
+{
+	PendingCycles = 4;
+	bExitWhenDone = bInExitWhenDone;
+	bFinished = false;
+
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: programada la prueba de apoyo sobre el suelo."));
+
+	GetWorldTimerManager().SetTimer(
+		GroundTimer, this, &ACWTestRunner::SetupGroundFollowTest, 1.0f, false);
+}
+
+void ACWTestRunner::SetupGroundFollowTest()
+{
+	UWorld* World = GetWorld();
+	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (!World || !Cube)
+	{
+		FinishTest(false, TEXT("suelo: no hay mundo o malla de cubo"));
+		return;
+	}
+
+	// Plataformas a 200 m de altura, lejos del nivel: las trazas de 20 m no lo alcanzan.
+	constexpr float BaseZ = 20000.f;
+	constexpr float RampDegrees = 15.f;
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	auto SpawnPlatform = [&](const FVector& Location, float PitchDegrees) -> AStaticMeshActor*
+	{
+		AStaticMeshActor* Platform = World->SpawnActor<AStaticMeshActor>(
+			AStaticMeshActor::StaticClass(), Location, FRotator(PitchDegrees, 0.f, 0.f), Params);
+		if (Platform)
+		{
+			UStaticMeshComponent* Mesh = Platform->GetStaticMeshComponent();
+			Mesh->SetMobility(EComponentMobility::Movable);
+			Mesh->SetStaticMesh(Cube);
+			Mesh->SetCollisionProfileName(TEXT("BlockAll"));
+			Platform->SetActorScale3D(FVector(30.f, 20.f, 1.f));
+		}
+		return Platform;
+	};
+
+	struct FCase { FVector Location; float RampPitch; float VehicleYaw; bool bTruck; };
+	const FCase Cases[] = {
+		{ FVector(0.f, -60000.f, BaseZ), 0.f,         0.f,  false }, // 0 plano
+		{ FVector(0.f, -64000.f, BaseZ), RampDegrees, 0.f,  true  }, // 1 rampa de frente
+		{ FVector(0.f, -68000.f, BaseZ), RampDegrees, 90.f, false }, // 2 rampa de lado
+		{ FVector(0.f, -72000.f, BaseZ), 0.f,         0.f,  true  }, // 3 caida de 4 m
+	};
+
+	GroundVehicles.Reset();
+	GroundExpectedNormal.Reset();
+	for (const FCase& Case : Cases)
+	{
+		AStaticMeshActor* Platform = SpawnPlatform(Case.Location, Case.RampPitch);
+		if (!Platform)
+		{
+			FinishTest(false, TEXT("suelo: no se pudo crear una plataforma"));
+			return;
+		}
+		GroundExpectedNormal.Add(Platform->GetActorUpVector());
+
+		const FVector SpawnAt = Case.Location + FVector(0.f, 0.f, 300.f);
+		const FRotator SpawnRot(0.f, Case.VehicleYaw, 0.f);
+		ACWVehicleBase* NewVehicle = Case.bTruck
+			? static_cast<ACWVehicleBase*>(World->SpawnActor<ACWDumpTruck>(ACWDumpTruck::StaticClass(), SpawnAt, SpawnRot, Params))
+			: static_cast<ACWVehicleBase*>(World->SpawnActor<ACWExcavator>(ACWExcavator::StaticClass(), SpawnAt, SpawnRot, Params));
+		if (!NewVehicle)
+		{
+			FinishTest(false, TEXT("suelo: no se pudo crear un vehiculo"));
+			return;
+		}
+		GroundVehicles.Add(NewVehicle);
+	}
+
+	// Caso 3: tras el ajuste de BeginPlay se levanta 4 m; debe caer y apoyarse solo.
+	GroundVehicles[3]->AddActorWorldOffset(FVector(0.f, 0.f, 400.f));
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: suelo preparado; caso 3 elevado a Z=%.1f."),
+		GroundVehicles[3]->GetActorLocation().Z);
+
+	GetWorldTimerManager().SetTimer(
+		GroundTimer, this, &ACWTestRunner::CheckGroundFollowTest, 3.0f, false);
+}
+
+void ACWTestRunner::CheckGroundFollowTest()
+{
+	UWorld* World = GetWorld();
+	static const TCHAR* Names[] = { TEXT("plano"), TEXT("rampa-frente"), TEXT("rampa-lado"), TEXT("caida") };
+
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	FCollisionQueryParams Params(TEXT("CWTestGround"), false);
+	for (ACWVehicleBase* Each : GroundVehicles)
+	{
+		Params.AddIgnoredActor(Each);
+	}
+
+	bool bAll = true;
+	FString Summary;
+	for (int32 Index = 0; Index < GroundVehicles.Num(); ++Index)
+	{
+		ACWVehicleBase* V = GroundVehicles[Index];
+		const FVector Location = V->GetActorLocation();
+		const FVector Normal = GroundExpectedNormal[Index];
+
+		FHitResult Hit;
+		const bool bHit = World && World->LineTraceSingleByObjectType(
+			Hit, Location + FVector(0.f, 0.f, 500.f), Location - FVector(0.f, 0.f, 3000.f), ObjectParams, Params);
+
+		// El origen queda a GroundContactDepthCm del plano medido sobre su normal.
+		const float ExpectedZ = bHit ? Hit.ImpactPoint.Z + V->GroundContactDepthCm / FMath::Max(0.1f, Normal.Z) : 0.f;
+		const float HeightError = bHit ? Location.Z - ExpectedZ : 9999.f;
+		const float TiltError = FMath::RadiansToDegrees(FMath::Acos(
+			FMath::Clamp(FVector::DotProduct(V->GetActorUpVector(), Normal), -1.f, 1.f)));
+		const float PlaneError = FMath::RadiansToDegrees(FMath::Acos(
+			FMath::Clamp(FVector::DotProduct(V->GetGroundPlaneNormal(), Normal), -1.f, 1.f)));
+
+		const bool bOk = bHit && V->IsOnGround()
+			&& FMath::Abs(HeightError) < 3.f && TiltError < 1.f && PlaneError < 1.f;
+		bAll &= bOk;
+
+		UE_LOG(LogCWTest, Display,
+			TEXT("CW_TEST suelo %s (%s): ok=%d enSuelo=%d altura err=%.2f cm inclinacion err=%.2f deg plano err=%.2f deg rot=%s"),
+			Names[Index], *V->GetClass()->GetName(), bOk, V->IsOnGround(), HeightError, TiltError, PlaneError,
+			*V->GetActorRotation().ToCompactString());
+
+		Summary += FString::Printf(TEXT("%s%s %s (dz %.1f cm, %.1f deg)"),
+			Index > 0 ? TEXT(", ") : TEXT(""), Names[Index], bOk ? TEXT("OK") : TEXT("FALLO"), HeightError, TiltError);
+	}
+
+	FinishTest(bAll, FString::Printf(TEXT("suelo %s: %s"), bAll ? TEXT("OK") : TEXT("FALLO"), *Summary));
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GCWTestGround(
+	TEXT("cw.Test.Ground"),
+	TEXT("Prueba de apoyo sobre el suelo: plano, rampa de 15 grados de frente y de lado, y caida de 4 m."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda(
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World)
+			{
+				UE_LOG(LogCWTest, Error, TEXT("CW_TEST: comando sin mundo."));
+				return;
+			}
+
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ACWTestRunner* Runner = World->SpawnActor<ACWTestRunner>(
+				ACWTestRunner::StaticClass(), FTransform::Identity, Params);
+
+			if (Runner)
+			{
+				Runner->StartGroundFollowTest(false);
+			}
 		}));

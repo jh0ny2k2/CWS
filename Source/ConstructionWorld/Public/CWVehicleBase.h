@@ -73,7 +73,48 @@ public:
 		meta = (ClampMin = "0.0", ClampMax = "360.0"))
 	float TurnRate = 80.f;
 
+	/** Sigue el suelo: altura, cabeceo y alabeo a partir de trazas en los puntos de apoyo,
+	 *  con caida libre si debajo hay un hueco mayor que MaxStepHeightCm. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground")
+	bool bFollowGround = true;
+
+	/** Distancia del origen del actor a la base de ruedas/orugas (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground", meta = (ClampMin = "0.0"))
+	float GroundContactDepthCm = 100.f;
+
+	/** Puntos de apoyo locales (X, Y) en cm. Vacio = esquinas de la caja de colision. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground")
+	TArray<FVector2D> GroundContactPoints;
+
+	/** Desnivel que se sigue pegado al suelo; por encima se cae con gravedad (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground", meta = (ClampMin = "0.0"))
+	float MaxStepHeightCm = 60.f;
+
+	/** Rapidez con la que el chasis se alinea con la pendiente. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground", meta = (ClampMin = "0.1"))
+	float GroundAlignSpeed = 6.f;
+
+	/** Inclinacion maxima que adopta el chasis (grados). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Vehicle|Ground", meta = (ClampMin = "0.0", ClampMax = "60.0"))
+	float MaxGroundTiltDegrees = 35.f;
+
+	UFUNCTION(BlueprintPure, Category = "CW|Vehicle|Ground")
+	bool IsOnGround() const { return bOnGround; }
+
+	/** Normal del plano de apoyo calculado en el ultimo frame. */
+	UFUNCTION(BlueprintPure, Category = "CW|Vehicle|Ground")
+	FVector GetGroundPlaneNormal() const { return GroundPlaneNormal; }
+
+	/** Fuerza un paso de seguimiento del suelo (tests y colocacion inicial). */
+	UFUNCTION(BlueprintCallable, Category = "CW|Vehicle|Ground")
+	void SnapToGround();
+
 protected:
+	/** Ajusta altura y orientacion al suelo. Llamar cada frame despues del avance. */
+	void UpdateGroundFollow(float DeltaSeconds);
+
+	virtual void BeginPlay() override;
+
 	void ExitPressed(const FInputActionValue& Value);
 	void VehicleLook(const FInputActionValue& Value);
 	void VehicleLookGamepad(const FInputActionValue& Value);
@@ -134,4 +175,13 @@ protected:
 
 	/** Entrada de movimiento acumulada cada frame. */
 	FVector2D DriveInput = FVector2D::ZeroVector;
+
+private:
+	/** Calcula el plano de apoyo. Devuelve el numero de puntos con suelo. */
+	int32 SampleGroundPlane(float& OutCenterZ, float& OutSlopeX, float& OutSlopeY) const;
+
+	float VerticalSpeedCmS = 0.f;
+	bool bOnGround = false;
+	bool bWarnedNoGround = false;
+	FVector GroundPlaneNormal = FVector::UpVector;
 };

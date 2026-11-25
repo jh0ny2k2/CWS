@@ -3,7 +3,7 @@
 Estado actual: **H0 (Fundaciones), H1-A (personaje y controles), H1-B (maquinaria), H2 (terreno deformable) y H4 (pulido gráfico y sonoro) completados**.
 El objetivo inmediato es la primera misión jugable de H3.
 
-> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 46 actores `CW_` (incluye decorado de obra, iluminación de tarde y postproceso global), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`) y terreno deformable (`-CWTestTerrain`, T-001…T-007 PASS). Todas se lanzan con `.ScriptsRunTests.ps1` (añade `-Build` para compilar antes). Falta empaquetar una build base.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 46 actores `CW_` (incluye decorado de obra, iluminación de tarde y postproceso global), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`), terreno deformable (`-CWTestTerrain`, T-001…T-007 PASS) y apoyo de los vehículos sobre el suelo (`-CWTestGround`, T-008: plano, rampa de 15° de frente y de lado, caída de 4 m). Todas se lanzan con `.\Scripts\RunTests.ps1` (añade `-Build` para compilar antes). Falta empaquetar una build base.
 
 ## Panel de seguimiento
 

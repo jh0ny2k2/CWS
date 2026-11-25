@@ -248,3 +248,18 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Resultado: compilación OK y **4/4 suites PASS** (EnterExit 10 ciclos, Excavator, Truck, Terrain T1–T7).
 - Panel: bitácora en F0.04, F0.05, F0.06, F1.02, F1.03, F1.04, F1.05, F1.07, F3.02; nueva tarea T-007; bugs BUG-011/012/013; `CW.updated` 2026-11-25 12:10.
 - Archivos afectados: `Scripts/RunTests.ps1`, `Source/ConstructionWorld/Public/{CWInputConfig,CWInteractable,CWInteractionComponent,CWPerformanceSubsystem,CWPlayerCharacter,CWVehicleBase}.h`, `Source/ConstructionWorld/Private/{CWInputConfig,CWInteractionComponent,CWPerformanceSubsystem,CWPlayerCharacter,CWVehicleBase,CWTerrainField,CWTestRunner}.cpp`, `Jugar (TestLevel).cmd`, `README.md`, `web/assets/data.js`, `memoria.md`.
+
+## [2026-11-25 12:30] Consulta del estado del trabajo en curso
+
+- Revisión de solo lectura de `memoria.md` y del `git diff` para responder al usuario por dónde iba el trabajo.
+- Encontrado sin registrar ni compilar: seguimiento del suelo para vehículos (`UpdateGroundFollow`, `SampleGroundPlane` por mínimos cuadrados, `SnapToGround`, caída libre) en `CWVehicleBase`, y ajustes de caja de colisión/puntos de apoyo en `CWExcavator` y `CWDumpTruck` (más corrección del cálculo de pendiente del volquete).
+- Archivos afectados: `memoria.md` (solo esta entrada).
+
+## [2026-11-25 19:40] BUG-014: los vehículos se apoyan e inclinan sobre el suelo (+ test T-008)
+
+- Terminado el trabajo a medias de seguimiento del suelo: `ACWVehicleBase::UpdateGroundFollow` (trazas en los puntos de apoyo, plano por mínimos cuadrados, altura y cabeceo/alabeo suavizados hasta 35°, caída libre si el hueco supera 60 cm) y `SnapToGround` en `BeginPlay`. Excavadora y volquete con caja de colisión recortada y 6 puntos de apoyo; el volquete calcula la pendiente con el avance horizontal.
+- Nueva suite `-CWTestGround` (T-008) en `CWTestRunner` + `CWTestSubsystem`, comando `cw.Test.Ground` y opción `Ground` en `Scripts/RunTests.ps1`: plano, rampa de 15° de frente, de lado y caída de 4 m. Error de altura 0.00 cm e inclinación 0.00° en los 4 casos.
+- Resultado: compilación OK y **5/5 suites PASS** (EnterExit, Excavator, Truck, Terrain, Ground).
+- Panel: BUG-014 (Medio, Resuelto), tarea T-008 (done), bitácora en F2.10, `CW.updated` 2026-11-25 19:40. README actualizado con la nueva suite (y corregida la ruta `.\Scripts\RunTests.ps1`, que salía sin barras).
+- Archivos afectados: `Source/ConstructionWorld/Public/{CWVehicleBase,CWTestRunner}.h`, `Source/ConstructionWorld/Private/{CWVehicleBase,CWExcavator,CWDumpTruck,CWTestRunner,CWTestSubsystem}.cpp`, `Scripts/RunTests.ps1`, `web/assets/data.js`, `README.md`, `memoria.md`.
+- Pendiente: probarlo jugando a mano en TestLevel (solo verificado en headless).

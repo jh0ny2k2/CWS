@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-25 12:10",
+  updated: "2026-11-25 19:40",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -324,7 +324,8 @@ window.CW = {
           status: "done",
           evidence: "Modelo de tracción por raycast en las 4 ruedas: agarre según ruedas en suelo, pendiente proyectada en la dirección de avance, dirección solo en movimiento y pérdida de velocidad/aceleración con carga.",
           log: [
-            { date: "2026-11-07 12:28", text: "Conducción propia del volquete (sin Chaos Vehicle): trazas por rueda, inercia, pendiente y penalización por peso." }
+            { date: "2026-11-07 12:28", text: "Conducción propia del volquete (sin Chaos Vehicle): trazas por rueda, inercia, pendiente y penalización por peso." },
+            { date: "2026-11-25 19:40", text: "El chasis ahora se inclina con el suelo (BUG-014), así que el efecto de la pendiente se calcula con el avance horizontal: con el forward ya alineado al terreno el producto con la normal salía ~0 y la cuesta no frenaba ni aceleraba. Caja de colisión bajada a 65 cm y 6 puntos de apoyo en las ruedas." }
           ]
         },
         {
@@ -535,6 +536,15 @@ window.CW = {
           evidence: "Test headless T7: traza vertical sobre el campo B devuelve ImpactNormal y Normal = +Z (antes -Z). -CWTestTerrain PASS.",
           log: [
             { date: "2026-11-25 12:10", text: "Añadido a la batería de terreno tras encontrar BUG-011, para que la regresión no vuelva a pasar desapercibida." }
+          ]
+        },
+        {
+          id: "T-008",
+          title: "Test: los vehículos se apoyan e inclinan sobre el suelo",
+          status: "done",
+          evidence: "Suite -CWTestGround (RunTests.ps1 -Suite Ground): excavadora en plano, volquete en rampa de 15° de frente, excavadora en rampa de 15° de lado y volquete soltado desde 4 m. Los 4 casos: error de altura 0.00 cm, inclinación 0.00° respecto a la normal de la rampa, IsOnGround. PASS.",
+          log: [
+            { date: "2026-11-25 19:40", text: "Nueva suite con plataformas de cubo giradas a un ángulo conocido; compara el eje Z del chasis con la normal real, sin depender del convenio de signos de pitch/roll. 5/5 suites PASS." }
           ]
         }
       ]
@@ -871,6 +881,16 @@ window.CW = {
       status: "Resuelto",
       log: [
         { date: "2026-11-25 12:10", text: "Textos del lanzador corregidos a partir de los MapKey del código." }
+      ]
+    },
+    {
+      id: "BUG-014",
+      title: "Los vehículos no se apoyaban en el terreno ni se inclinaban en pendientes",
+      detail: "Resuelto: el movimiento cinemático solo desplazaba en horizontal y el chasis iba siempre recto; flotaba sobre los huecos, se enganchaba en baches con la caja de colisión y no se inclinaba en rampas. Nuevo seguimiento de suelo en ACWVehicleBase (UpdateGroundFollow): trazas en 6 puntos de apoyo, plano por mínimos cuadrados, altura y cabeceo/alabeo suavizados (máx. 35°), caída libre con gravedad si el hueco supera 60 cm y SnapToGround al empezar. Cajas de colisión de excavadora y volquete recortadas para dejar holgura. Cubierto por el test T-008.",
+      severity: "Medio",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-25 19:40", text: "Implementado en CWVehicleBase.h/.cpp con ajustes en CWExcavator.cpp y CWDumpTruck.cpp. Compilación OK; suite Ground (4 casos) y las otras 4 suites en PASS." }
       ]
     }
   ]

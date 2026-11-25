@@ -30,7 +30,14 @@ ACWExcavator::ACWExcavator()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Chasis/orugas: caja algo mas ancha y baja que el vehiculo base.
-	CollisionBox->SetBoxExtent(FVector(260.f, 150.f, 70.f));
+	// La caja acaba 20 cm por encima de la base de las orugas (-70 cm) para no
+	// engancharse en baches; UpdateGroundFollow apoya el chasis sobre el terreno.
+	CollisionBox->SetBoxExtent(FVector(260.f, 150.f, 50.f));
+	GroundContactDepthCm = 70.f;
+	GroundContactPoints = {
+		FVector2D( 240.f, -110.f), FVector2D( 240.f, 110.f),
+		FVector2D(   0.f, -110.f), FVector2D(   0.f, 110.f),
+		FVector2D(-240.f, -110.f), FVector2D(-240.f, 110.f) };
 
 	BodyMesh->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
 	BodyMesh->SetRelativeScale3D(FVector(5.2f, 3.f, 1.4f));
@@ -453,6 +460,7 @@ void ACWExcavator::Tick(float DeltaSeconds)
 		LeftTrackSpeed = 0.f;
 		RightTrackSpeed = 0.f;
 		HydraulicActivity = 0.f;
+		UpdateGroundFollow(DeltaSeconds);
 		ApplyJointRotations();
 		UpdateHydraulics();
 		return;
@@ -487,6 +495,7 @@ void ACWExcavator::Tick(float DeltaSeconds)
 			MinBucketPitch, MaxBucketPitch);
 	}
 
+	UpdateGroundFollow(DeltaSeconds);
 	ApplyJointRotations();
 	UpdateHydraulics();
 

@@ -25,7 +25,14 @@ ACWDumpTruck::ACWDumpTruck()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	CollisionBox->SetBoxExtent(FVector(330.f, 140.f, 90.f));
+	// Caja hasta la base del chasis (-65 cm); las ruedas bajan a -90 cm. Los 25 cm de
+	// holgura dejan pasar baches; la altura y la inclinacion las fija UpdateGroundFollow.
+	CollisionBox->SetBoxExtent(FVector(330.f, 140.f, 65.f));
+	GroundContactDepthCm = 90.f;
+	GroundContactPoints = {
+		FVector2D( 300.f, -125.f), FVector2D( 300.f, 125.f),
+		FVector2D(   0.f, -125.f), FVector2D(   0.f, 125.f),
+		FVector2D(-300.f, -125.f), FVector2D(-300.f, 125.f) };
 
 	BodyMesh->SetRelativeLocation(FVector(0.f, 0.f, 10.f));
 	BodyMesh->SetRelativeScale3D(FVector(6.4f, 2.6f, 1.5f));
@@ -269,6 +276,7 @@ void ACWDumpTruck::Tick(float DeltaSeconds)
 		CurrentSpeedCmS = FMath::FInterpTo(CurrentSpeedCmS, 0.f, DeltaSeconds, 2.f);
 		SteerAngle = FMath::FInterpTo(SteerAngle, 0.f, DeltaSeconds, 5.f);
 		DriveInput = FVector2D::ZeroVector;
+		UpdateGroundFollow(DeltaSeconds);
 		UpdateBed(DeltaSeconds);
 		UpdateWheels(DeltaSeconds);
 		return;
@@ -296,7 +304,10 @@ void ACWDumpTruck::Tick(float DeltaSeconds)
 	}
 
 	// Componente de la gravedad sobre el plano de apoyo (sube = frena, baja = acelera).
-	const float SlopeDot = FVector::DotProduct(GetActorForwardVector(), GroundNormal);
+	// Se usa el avance horizontal: con el chasis ya alineado a la pendiente, el forward
+	// real es tangente al suelo y su producto con la normal seria siempre ~0.
+	const FVector FlatForward = FVector(GetActorForwardVector().X, GetActorForwardVector().Y, 0.f).GetSafeNormal();
+	const float SlopeDot = FVector::DotProduct(FlatForward, GroundNormal);
 	CurrentSpeedCmS += SlopeDot * 980.f * 0.35f * DeltaSeconds;
 
 	if (GroundedWheelCount == 0)
@@ -337,6 +348,7 @@ void ACWDumpTruck::Tick(float DeltaSeconds)
 		}
 	}
 
+	UpdateGroundFollow(DeltaSeconds);
 	UpdateBed(DeltaSeconds);
 	UpdateWheels(DeltaSeconds);
 

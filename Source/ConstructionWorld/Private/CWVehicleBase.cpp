@@ -31,7 +31,9 @@ ACWVehicleBase::ACWVehicleBase()
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	SetRootComponent(CollisionBox);
-	CollisionBox->SetBoxExtent(FVector(200.f, 100.f, 100.f));
+	// La caja termina 20 cm por encima de la base de la carroceria (GroundContactDepthCm):
+	// esa holgura deja pasar baches y pendientes; la altura la fija UpdateGroundFollow.
+	CollisionBox->SetBoxExtent(FVector(200.f, 100.f, 80.f));
 	CollisionBox->SetCollisionProfileName(TEXT("BlockAll"));
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
@@ -101,6 +103,7 @@ void ACWVehicleBase::Tick(float DeltaSeconds)
 
 	if (!Driver)
 	{
+		UpdateGroundFollow(DeltaSeconds);
 		return;
 	}
 
@@ -118,7 +121,235 @@ void ACWVehicleBase::Tick(float DeltaSeconds)
 		AddActorWorldOffset(Delta, true);
 	}
 
+	UpdateGroundFollow(DeltaSeconds);
 	DriveInput = FVector2D::ZeroVector;
+}
+
+void ACWVehicleBase::BeginPlay()
+{
+	Super::BeginPlay();
+	SnapToGround();
+}
+
+int32 ACWVehicleBase::SampleGroundPlane(float& OutCenterZ, float& OutSlopeX, float& OutSlopeY) const
+{
+	OutCenterZ = 0.f;
+	OutSlopeX = 0.f;
+	OutSlopeY = 0.f;
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0;
+	}
+
+	TArray<FVector2D, TInlineAllocator<8>> Points;
+	if (GroundContactPoints.Num() > 0)
+	{
+		Points.Append(GroundContactPoints);
+	}
+	else
+	{
+		const FVector Ext = CollisionBox ? CollisionBox->GetUnscaledBoxExtent() : FVector(200.f, 100.f, 80.f);
+		Points.Add(FVector2D( Ext.X, -Ext.Y));
+		Points.Add(FVector2D( Ext.X,  Ext.Y));
+		Points.Add(FVector2D(-Ext.X, -Ext.Y));
+		Points.Add(FVector2D(-Ext.X,  Ext.Y));
+	}
+
+	const FVector Location = GetActorLocation();
+	const FQuat YawQuat = FRotator(0.f, GetActorRotation().Yaw, 0.f).Quaternion();
+
+	// Solo geometria del mundo (estatica y dinamica): ni peatones ni el propio conductor.
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	FCollisionQueryParams Params(TEXT("CWGroundFollow"), false, this);
+	if (Driver)
+	{
+		Params.AddIgnoredActor(Driver);
+	}
+
+	const float TanMaxTilt = FMath::Tan(FMath::DegreesToRadians(MaxGroundTiltDegrees));
+
+	// Ajuste por minimos cuadrados de z = a + b*x + c*y en ejes locales (solo yaw).
+	double N = 0, Sx = 0, Sy = 0, Sz = 0, Sxx = 0, Syy = 0, Sxy = 0, Sxz = 0, Syz = 0;
+	for (const FVector2D& P : Points)
+	{
+		const FVector XY = Location + YawQuat.RotateVector(FVector(P.X, P.Y, 0.f));
+		// Empezar por encima de lo que el chasis podria tener delante en la pendiente maxima.
+		const float Reach = MaxStepHeightCm + (FMath::Abs(P.X) + FMath::Abs(P.Y)) * TanMaxTilt;
+		const FVector Start(XY.X, XY.Y, Location.Z - GroundContactDepthCm + Reach);
+		const FVector End(XY.X, XY.Y, Location.Z - GroundContactDepthCm - 2000.f);
+
+		FHitResult Hit;
+		if (!World->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, Params) || Hit.bStartPenetrating)
+		{
+			continue;
+		}
+
+		const double Z = Hit.ImpactPoint.Z;
+		N += 1; Sx += P.X; Sy += P.Y; Sz += Z;
+		Sxx += P.X * P.X; Syy += P.Y * P.Y; Sxy += P.X * P.Y;
+		Sxz += P.X * Z; Syz += P.Y * Z;
+	}
+
+	if (N < 1)
+	{
+		return 0;
+	}
+
+	OutCenterZ = static_cast<float>(Sz / N);
+	if (N < 3)
+	{
+		return static_cast<int32>(N);
+	}
+
+	// Sistema normal 3x3 resuelto por Cramer.
+	const double M[3][3] = { { N, Sx, Sy }, { Sx, Sxx, Sxy }, { Sy, Sxy, Syy } };
+	const double V[3] = { Sz, Sxz, Syz };
+	auto Det3 = [](const double A[3][3])
+	{
+		return A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1])
+			- A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
+			+ A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+	};
+	const double D = Det3(M);
+	if (FMath::Abs(D) < 1e-3)
+	{
+		return static_cast<int32>(N);
+	}
+
+	double Mi[3][3];
+	for (int32 Col = 0; Col < 3; ++Col)
+	{
+		FMemory::Memcpy(Mi, M, sizeof(M));
+		for (int32 Row = 0; Row < 3; ++Row)
+		{
+			Mi[Row][Col] = V[Row];
+		}
+		const double Value = Det3(Mi) / D;
+		if (Col == 0)
+		{
+			OutCenterZ = static_cast<float>(Value);
+		}
+		else if (Col == 1)
+		{
+			OutSlopeX = static_cast<float>(FMath::Clamp<double>(Value, -TanMaxTilt, TanMaxTilt));
+		}
+		else
+		{
+			OutSlopeY = static_cast<float>(FMath::Clamp<double>(Value, -TanMaxTilt, TanMaxTilt));
+		}
+	}
+
+	return static_cast<int32>(N);
+}
+
+void ACWVehicleBase::UpdateGroundFollow(float DeltaSeconds)
+{
+	if (!bFollowGround || DeltaSeconds <= 0.f)
+	{
+		return;
+	}
+
+	float CenterZ = 0.f;
+	float SlopeX = 0.f;
+	float SlopeY = 0.f;
+	const int32 Hits = SampleGroundPlane(CenterZ, SlopeX, SlopeY);
+
+	const FVector Location = GetActorLocation();
+	const FRotator Rotation = GetActorRotation();
+
+	if (Hits == 0)
+	{
+		// Sin suelo en 20 m: mantener la posicion en vez de caer al vacio.
+		bOnGround = false;
+		VerticalSpeedCmS = 0.f;
+		if (!bWarnedNoGround)
+		{
+			UE_LOG(LogCWVehicle, Warning, TEXT("%s: sin suelo bajo el vehiculo; se mantiene la altura."), *GetName());
+			bWarnedNoGround = true;
+		}
+		return;
+	}
+	bWarnedNoGround = false;
+
+	// El origen queda a GroundContactDepthCm del plano, medido sobre su normal.
+	const float NormalScale = FMath::Sqrt(1.f + SlopeX * SlopeX + SlopeY * SlopeY);
+	const float TargetZ = CenterZ + GroundContactDepthCm * NormalScale;
+	const float Gap = Location.Z - TargetZ;
+
+	float NewZ = Location.Z;
+	if (Gap <= MaxStepHeightCm && VerticalSpeedCmS > -50.f)
+	{
+		// Pegado al suelo: sube y baja suavemente siguiendo baches y pendientes.
+		NewZ = FMath::FInterpTo(Location.Z, TargetZ, DeltaSeconds, 18.f);
+		VerticalSpeedCmS = 0.f;
+		bOnGround = true;
+	}
+	else
+	{
+		// Hueco grande (borde de una zanja): caida libre hasta apoyar.
+		VerticalSpeedCmS = FMath::Max(VerticalSpeedCmS - 980.f * DeltaSeconds, -3000.f);
+		NewZ = Location.Z + VerticalSpeedCmS * DeltaSeconds;
+		if (NewZ <= TargetZ)
+		{
+			NewZ = TargetZ;
+			VerticalSpeedCmS = 0.f;
+			bOnGround = true;
+		}
+		else
+		{
+			bOnGround = false;
+		}
+	}
+
+	// Cabeceo positivo = morro arriba; alabeo positivo baja el lado derecho (+Y).
+	FRotator TargetRotation = Rotation;
+	if (Hits >= 3)
+	{
+		TargetRotation.Pitch = FMath::RadiansToDegrees(FMath::Atan(SlopeX));
+		TargetRotation.Roll = -FMath::RadiansToDegrees(FMath::Atan(SlopeY));
+	}
+	FRotator NewRotation = FMath::RInterpTo(Rotation, TargetRotation, DeltaSeconds, GroundAlignSpeed);
+	NewRotation.Yaw = Rotation.Yaw;
+
+	const FQuat YawQuat = FRotator(0.f, Rotation.Yaw, 0.f).Quaternion();
+	GroundPlaneNormal = YawQuat.RotateVector(FVector(-SlopeX, -SlopeY, 1.f).GetSafeNormal());
+
+	SetActorLocationAndRotation(FVector(Location.X, Location.Y, NewZ), NewRotation, false, nullptr, ETeleportType::None);
+}
+
+void ACWVehicleBase::SnapToGround()
+{
+	if (!bFollowGround)
+	{
+		return;
+	}
+
+	float CenterZ = 0.f;
+	float SlopeX = 0.f;
+	float SlopeY = 0.f;
+	const int32 Hits = SampleGroundPlane(CenterZ, SlopeX, SlopeY);
+	if (Hits == 0)
+	{
+		return;
+	}
+
+	FRotator Rotation = GetActorRotation();
+	if (Hits >= 3)
+	{
+		Rotation.Pitch = FMath::RadiansToDegrees(FMath::Atan(SlopeX));
+		Rotation.Roll = -FMath::RadiansToDegrees(FMath::Atan(SlopeY));
+	}
+	const float NormalScale = FMath::Sqrt(1.f + SlopeX * SlopeX + SlopeY * SlopeY);
+	FVector Location = GetActorLocation();
+	Location.Z = CenterZ + GroundContactDepthCm * NormalScale;
+
+	VerticalSpeedCmS = 0.f;
+	bOnGround = true;
+	SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void ACWVehicleBase::EnsureInputObjects()
