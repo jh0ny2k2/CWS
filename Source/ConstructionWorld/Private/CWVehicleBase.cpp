@@ -1,10 +1,12 @@
 #include "CWVehicleBase.h"
 
+#include "CWInputConfig.h"
 #include "CWPlayerCharacter.h"
 #include "CWLog.h"
 #include "CWVehicleFXComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -19,6 +21,7 @@
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "Engine/Engine.h"
 #include "UObject/ConstructorHelpers.h"
 
 ACWVehicleBase::ACWVehicleBase()
@@ -80,6 +83,7 @@ void ACWVehicleBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	{
 		EnhancedInput->BindAction(ExitAction,         ETriggerEvent::Started,   this, &ACWVehicleBase::ExitPressed);
 		EnhancedInput->BindAction(LookAction,         ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleLook);
+		EnhancedInput->BindAction(LookGamepadAction,  ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleLookGamepad);
 		EnhancedInput->BindAction(DriveForwardAction, ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleMoveForward);
 		EnhancedInput->BindAction(DriveRightAction,   ETriggerEvent::Triggered, this, &ACWVehicleBase::VehicleMoveRight);
 	}
@@ -130,6 +134,9 @@ void ACWVehicleBase::EnsureInputObjects()
 	LookAction = NewObject<UInputAction>(this, TEXT("IA_VehicleLook"));
 	LookAction->ValueType = EInputActionValueType::Axis2D;
 
+	LookGamepadAction = NewObject<UInputAction>(this, TEXT("IA_VehicleLookGamepad"));
+	LookGamepadAction->ValueType = EInputActionValueType::Axis2D;
+
 	DriveForwardAction = NewObject<UInputAction>(this, TEXT("IA_DriveForward"));
 	DriveForwardAction->ValueType = EInputActionValueType::Axis1D;
 
@@ -149,6 +156,12 @@ void ACWVehicleBase::EnsureInputObjects()
 	VehicleMappingContext->MapKey(DriveRightAction, EKeys::D);
 	FEnhancedActionKeyMapping& LeftMap = VehicleMappingContext->MapKey(DriveRightAction, EKeys::A);
 	LeftMap.Modifiers.Add(NewObject<UInputModifierNegate>(this));
+
+	// F1.07: mando. B sale, stick izquierdo conduce, stick derecho mira.
+	VehicleMappingContext->MapKey(ExitAction, EKeys::Gamepad_FaceButton_Right);
+	CWInput::MapKey(VehicleMappingContext, LookGamepadAction, EKeys::Gamepad_Right2D, this, false, true);
+	CWInput::MapKey(VehicleMappingContext, DriveForwardAction, EKeys::Gamepad_LeftY, this, false, true);
+	CWInput::MapKey(VehicleMappingContext, DriveRightAction, EKeys::Gamepad_LeftX, this, false, true);
 }
 
 void ACWVehicleBase::ApplyVehicleMappingContext()
@@ -166,48 +179,85 @@ void ACWVehicleBase::ApplyVehicleMappingContext()
 	}
 }
 
-FVector ACWVehicleBase::FindSafeExitLocation() const
+bool ACWVehicleBase::FindSafeExitLocation(FVector& OutLocation) const
 {
+	const FVector DefaultLocation = GetActorLocation() + GetActorQuat().RotateVector(ExitOffset);
+	OutLocation = DefaultLocation;
+
 	const UWorld* World = GetWorld();
-	if (!Driver || !World)
+	if (!World)
 	{
-		return GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
+		return false;
 	}
 
-	// Capsula del personaje para el sweep
-	const float HalfHeight = 96.f;
-	const float Radius     = 42.f;
+	// Capsula real del personaje (antes estaba fijada a mano a 42x96).
+	float Radius = 42.f;
+	float HalfHeight = 96.f;
+	if (Driver && Driver->GetCapsuleComponent())
+	{
+		Driver->GetCapsuleComponent()->GetScaledCapsuleSize(Radius, HalfHeight);
+	}
 	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 
 	FCollisionQueryParams Params(TEXT("ExitSweep"), false, this);
 	Params.AddIgnoredActor(Driver);
 
-	// Candidatos en orden de preferencia: atras, derecha, izquierda, delante
+	// Solo el giro en Z: en pendiente no queremos candidatos enterrados o en el aire.
+	const FQuat YawQuat = FRotator(0.f, GetActorRotation().Yaw, 0.f).Quaternion();
+	const float Side = FMath::Abs(ExitOffset.X);
+
+	// Candidatos en orden de preferencia: atras, derecha, izquierda, delante y luego mas lejos.
 	const FVector LocalOffsets[] = {
 		ExitOffset,
-		FVector(0.f,  FMath::Abs(ExitOffset.X), ExitOffset.Z),
-		FVector(0.f, -FMath::Abs(ExitOffset.X), ExitOffset.Z),
-		FVector( FMath::Abs(ExitOffset.X), 0.f, ExitOffset.Z)
+		FVector(0.f,  Side, ExitOffset.Z),
+		FVector(0.f, -Side, ExitOffset.Z),
+		FVector(Side, 0.f, ExitOffset.Z),
+		FVector(ExitOffset.X * 1.6f, 0.f, ExitOffset.Z),
+		FVector(0.f,  Side * 1.6f, ExitOffset.Z),
+		FVector(0.f, -Side * 1.6f, ExitOffset.Z)
 	};
+
+	const FVector CabinPoint = DriverSeatPoint ? DriverSeatPoint->GetComponentLocation() : GetActorLocation();
 
 	for (const FVector& LocalOff : LocalOffsets)
 	{
-		const FVector WorldCandidate = GetActorLocation() + GetActorRotation().RotateVector(LocalOff);
-		FHitResult Hit;
-		const bool bBlocked = World->SweepSingleByChannel(
-			Hit, WorldCandidate, WorldCandidate,
-			FQuat::Identity, ECC_Pawn, CapsuleShape, Params);
+		const FVector Candidate = GetActorLocation() + YawQuat.RotateVector(LocalOff);
 
-		if (!bBlocked)
+		// 1) Linea de vision desde la cabina: no atravesar muros ni otros vehiculos.
+		FHitResult LosHit;
+		if (World->LineTraceSingleByChannel(LosHit, CabinPoint, Candidate, ECC_Visibility, Params))
 		{
-			return WorldCandidate;
+			UE_LOG(LogCWVehicle, Verbose, TEXT("Salida %s: sin linea de vision (%s)"), *Candidate.ToCompactString(), *GetNameSafe(LosHit.GetActor()));
+			continue;
 		}
+
+		// 2) Suelo: bajar la capsula desde el candidato hasta encontrar apoyo.
+		FHitResult GroundHit;
+		const FVector DropStart = Candidate + FVector(0.f, 0.f, HalfHeight);
+		const FVector DropEnd = Candidate - FVector(0.f, 0.f, MaxExitDrop);
+		if (!World->SweepSingleByChannel(GroundHit, DropStart, DropEnd, FQuat::Identity, ECC_Pawn, CapsuleShape, Params)
+			|| GroundHit.bStartPenetrating
+			|| GroundHit.ImpactNormal.Z < 0.6f)
+		{
+			UE_LOG(LogCWVehicle, Verbose, TEXT("Salida %s: sin suelo valido (hit=%d pen=%d actor=%s n=%s in=%s loc=%s)"), *Candidate.ToCompactString(), GroundHit.bBlockingHit, GroundHit.bStartPenetrating, *GetNameSafe(GroundHit.GetActor()), *GroundHit.Normal.ToCompactString(), *GroundHit.ImpactNormal.ToCompactString(), *GroundHit.Location.ToCompactString());
+			continue;
+		}
+
+		// 3) Hueco libre en la posicion final (con 2 cm de margen sobre el suelo).
+		const FVector Standing = GroundHit.Location + FVector(0.f, 0.f, 2.f);
+		if (World->OverlapBlockingTestByChannel(Standing, FQuat::Identity, ECC_Pawn, CapsuleShape, Params))
+		{
+			UE_LOG(LogCWVehicle, Verbose, TEXT("Salida %s: hueco ocupado"), *Standing.ToCompactString());
+			continue;
+		}
+
+		OutLocation = Standing;
+		return true;
 	}
 
 	UE_LOG(LogCWVehicle, Warning,
-		TEXT("CWVehicleBase::FindSafeExitLocation - no se encontro un punto libre; "
-		     "usando offset por defecto."));
-	return GetActorLocation() + GetActorRotation().RotateVector(ExitOffset);
+		TEXT("CWVehicleBase::FindSafeExitLocation - %s sin punto de salida libre."), *GetName());
+	return false;
 }
 
 bool ACWVehicleBase::TryEnter(ACWPlayerCharacter* Player)
@@ -265,6 +315,20 @@ void ACWVehicleBase::ExitVehicle()
 		return;
 	}
 
+	// Buscar el hueco antes de soltar nada: si no hay sitio, el jugador sigue al volante
+	// en vez de aparecer dentro de un muro o caer por un talud (antes se forzaba la salida).
+	FVector SafeLocation = FVector::ZeroVector;
+	if (Driver && !FindSafeExitLocation(SafeLocation))
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				static_cast<uint64>(GetUniqueID()), 2.5f, FColor::Orange,
+				TEXT("No hay espacio para bajar del vehiculo aqui."));
+		}
+		return;
+	}
+
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 	{
@@ -272,10 +336,15 @@ void ACWVehicleBase::ExitVehicle()
 	}
 
 	PC->UnPossess();
+	DriveInput = FVector2D::ZeroVector;
 
 	if (Driver)
 	{
 		Driver->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+		// De pie y mirando en la direccion del vehiculo (sin heredar inclinacion del chasis).
+		const FRotator Upright(0.f, GetActorRotation().Yaw, 0.f);
+		Driver->SetActorLocationAndRotation(SafeLocation, Upright, false, nullptr, ETeleportType::TeleportPhysics);
 		Driver->SetActorEnableCollision(true);
 		Driver->SetActorHiddenInGame(false);
 
@@ -284,13 +353,10 @@ void ACWVehicleBase::ExitVehicle()
 			Movement->SetMovementMode(MOVE_Walking);
 		}
 
-		// BUG-006 corregido: sweep para encontrar un punto libre antes de teleportar
-		const FVector SafeLocation = FindSafeExitLocation();
-		Driver->SetActorLocation(SafeLocation, false, nullptr, ETeleportType::TeleportPhysics);
-
 		ACWPlayerCharacter* OldDriver = Driver;
 		Driver = nullptr;
 		PC->Possess(OldDriver);
+		PC->SetControlRotation(Upright);
 	}
 }
 
@@ -301,13 +367,12 @@ void ACWVehicleBase::ExitPressed(const FInputActionValue& Value)
 
 void ACWVehicleBase::VehicleLook(const FInputActionValue& Value)
 {
-	const FVector2D LookAxis = Value.Get<FVector2D>();
-	if (!Controller)
-	{
-		return;
-	}
-	AddControllerYawInput(LookAxis.X);
-	AddControllerPitchInput(LookAxis.Y);
+	CWInput::ApplyLook(this, Value.Get<FVector2D>(), false);
+}
+
+void ACWVehicleBase::VehicleLookGamepad(const FInputActionValue& Value)
+{
+	CWInput::ApplyLook(this, Value.Get<FVector2D>(), true);
 }
 
 void ACWVehicleBase::VehicleMoveForward(const FInputActionValue& Value)
@@ -335,5 +400,11 @@ FText ACWVehicleBase::GetInteractionPrompt_Implementation() const
 		return NSLOCTEXT("CW", "VehicleOccupied", "Vehiculo ocupado");
 	}
 
-	return NSLOCTEXT("CW", "EnterVehicle", "Entrar en el vehiculo [E]");
+	return NSLOCTEXT("CW", "EnterVehicle", "Entrar en el vehiculo [E / X]");
+}
+
+bool ACWVehicleBase::CanInteract_Implementation(AActor* Interactor) const
+{
+	// Ocupado: se sigue enfocando para mostrar "Vehiculo ocupado", pero no por el propio conductor.
+	return Interactor != Driver;
 }

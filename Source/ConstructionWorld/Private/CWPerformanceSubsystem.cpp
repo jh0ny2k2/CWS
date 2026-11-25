@@ -1,6 +1,7 @@
 #include "CWPerformanceSubsystem.h"
 
 #include "CWLog.h"
+#include "Engine/World.h"
 #include "HAL/IConsoleManager.h"
 #include "Stats/Stats.h"
 
@@ -22,22 +23,41 @@ static TAutoConsoleVariable<float> CVarCWPerfInterval(
 	TEXT("Segundos entre resumenes automaticos de rendimiento."),
 	ECVF_Default);
 
+// Comandos registrados una sola vez por proceso; actuan sobre el subsistema del mundo
+// desde el que se lanzan (antes se registraban por instancia y chocaban con varios mundos).
+static FAutoConsoleCommandWithWorld GCWPerfReportNowCommand(
+	TEXT("cw.Perf.ReportNow"),
+	TEXT("Escribe un resumen inmediato de FPS/tiempo de frame en el log."),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		if (UCWPerformanceSubsystem* Perf = World ? World->GetSubsystem<UCWPerformanceSubsystem>() : nullptr)
+		{
+			Perf->LogReport();
+		}
+	}));
+
+static FAutoConsoleCommandWithWorld GCWPerfResetCommand(
+	TEXT("cw.Perf.Reset"),
+	TEXT("Vacia la ventana de muestras de rendimiento."),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		if (UCWPerformanceSubsystem* Perf = World ? World->GetSubsystem<UCWPerformanceSubsystem>() : nullptr)
+		{
+			Perf->ResetSamples();
+		}
+	}));
+
+bool UCWPerformanceSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
+{
+	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
+}
+
 void UCWPerformanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	FrameTimesMs.Reserve(MaxSamples);
-	TimeSinceReport = 0.f;
-
-	ReportNowCommand = MakeUnique<FAutoConsoleCommand>(
-		TEXT("cw.Perf.ReportNow"),
-		TEXT("Escribe un resumen inmediato de FPS/tiempo de frame en el log."),
-		FConsoleCommandDelegate::CreateUObject(this, &UCWPerformanceSubsystem::LogReport));
-
-	ResetCommand = MakeUnique<FAutoConsoleCommand>(
-		TEXT("cw.Perf.Reset"),
-		TEXT("Vacia la ventana de muestras de rendimiento."),
-		FConsoleCommandDelegate::CreateUObject(this, &UCWPerformanceSubsystem::ResetSamples));
+	FrameTimesMs.SetNumZeroed(MaxSamples);
+	ResetSamples();
 
 	UE_LOG(LogCWPerf, Log,
 		TEXT("Metricas de rendimiento activas (ventana=%d frames). Comandos: cw.Perf.Hud, cw.Perf.ReportNow, cw.Perf.Reset."),
@@ -46,9 +66,8 @@ void UCWPerformanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UCWPerformanceSubsystem::Deinitialize()
 {
-	ReportNowCommand.Reset();
-	ResetCommand.Reset();
-	FrameTimesMs.Reset();
+	FrameTimesMs.Empty();
+	SampleCount = 0;
 
 	Super::Deinitialize();
 }
@@ -91,47 +110,61 @@ bool UCWPerformanceSubsystem::IsHudEnabled()
 
 void UCWPerformanceSubsystem::AddSample(float FrameMs)
 {
-	if (FrameTimesMs.Num() >= MaxSamples)
+	if (FrameTimesMs.Num() != MaxSamples)
 	{
-		FrameTimesMs.RemoveAt(0, 1, EAllowShrinking::No);
+		FrameTimesMs.SetNumZeroed(MaxSamples);
 	}
 
-	FrameTimesMs.Add(FrameMs);
-	RecalculateStats();
-}
+	const bool bFull = SampleCount >= MaxSamples;
+	const float Evicted = bFull ? FrameTimesMs[NextIndex] : 0.f;
 
-void UCWPerformanceSubsystem::RecalculateStats()
-{
-	const int32 Count = FrameTimesMs.Num();
-	if (Count == 0)
-	{
-		AverageFPS = 0.f;
-		AverageFrameMs = 0.f;
-		P95FrameMs = 0.f;
-		WorstFrameMs = 0.f;
-		return;
-	}
+	FrameTimesMs[NextIndex] = FrameMs;
+	NextIndex = (NextIndex + 1) % MaxSamples;
+	SampleCount = FMath::Min(SampleCount + 1, MaxSamples);
+	SumMs += FrameMs - Evicted;
 
-	double Sum = 0.0;
-	WorstFrameMs = 0.f;
-	for (const float FrameMs : FrameTimesMs)
-	{
-		Sum += FrameMs;
-		WorstFrameMs = FMath::Max(WorstFrameMs, FrameMs);
-	}
-
-	AverageFrameMs = static_cast<float>(Sum / Count);
+	AverageFrameMs = static_cast<float>(SumMs / SampleCount);
 	AverageFPS = AverageFrameMs > KINDA_SMALL_NUMBER ? (1000.f / AverageFrameMs) : 0.f;
 
-	TArray<float> Sorted(FrameTimesMs);
-	Sorted.Sort();
-	const int32 P95Index = FMath::Clamp(FMath::FloorToInt(0.95f * (Count - 1)), 0, Count - 1);
-	P95FrameMs = Sorted[P95Index];
+	// El peor frame solo exige recorrer la ventana si el que sale era el maximo.
+	if (FrameMs >= WorstFrameMs)
+	{
+		WorstFrameMs = FrameMs;
+	}
+	else if (bFull && Evicted >= WorstFrameMs)
+	{
+		WorstFrameMs = 0.f;
+		for (int32 i = 0; i < SampleCount; ++i)
+		{
+			WorstFrameMs = FMath::Max(WorstFrameMs, FrameTimesMs[i]);
+		}
+	}
+
+	bP95Dirty = true;
+}
+
+float UCWPerformanceSubsystem::GetP95FrameMs() const
+{
+	if (SampleCount == 0)
+	{
+		return 0.f;
+	}
+
+	if (bP95Dirty)
+	{
+		TArray<float> Sorted(FrameTimesMs.GetData(), SampleCount);
+		Sorted.Sort();
+		const int32 P95Index = FMath::Clamp(FMath::FloorToInt(0.95f * (SampleCount - 1)), 0, SampleCount - 1);
+		CachedP95FrameMs = Sorted[P95Index];
+		bP95Dirty = false;
+	}
+
+	return CachedP95FrameMs;
 }
 
 void UCWPerformanceSubsystem::LogReport()
 {
-	if (FrameTimesMs.Num() == 0)
+	if (SampleCount == 0)
 	{
 		UE_LOG(LogCWPerf, Warning, TEXT("Sin muestras de rendimiento todavia."));
 		return;
@@ -139,17 +172,20 @@ void UCWPerformanceSubsystem::LogReport()
 
 	UE_LOG(LogCWPerf, Log,
 		TEXT("Rendimiento: %.1f FPS | frame medio %.2f ms | p95 %.2f ms | peor %.2f ms | %d muestras"),
-		AverageFPS, AverageFrameMs, P95FrameMs, WorstFrameMs, FrameTimesMs.Num());
+		AverageFPS, AverageFrameMs, GetP95FrameMs(), WorstFrameMs, SampleCount);
 }
 
 void UCWPerformanceSubsystem::ResetSamples()
 {
-	FrameTimesMs.Reset();
+	NextIndex = 0;
+	SampleCount = 0;
+	SumMs = 0.0;
 	TimeSinceReport = 0.f;
 	AverageFPS = 0.f;
 	AverageFrameMs = 0.f;
-	P95FrameMs = 0.f;
 	WorstFrameMs = 0.f;
+	CachedP95FrameMs = 0.f;
+	bP95Dirty = true;
 
 	UE_LOG(LogCWPerf, Log, TEXT("Ventana de muestras de rendimiento vaciada."));
 }

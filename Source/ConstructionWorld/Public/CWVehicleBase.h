@@ -52,6 +52,7 @@ public:
 	// ICWInteractable
 	virtual void Interact_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() const override;
+	virtual bool CanInteract_Implementation(AActor* Interactor) const override;
 
 	/** Socket de la malla donde se adjunta el conductor. Puede no existir en el placeholder. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CW|Vehicle")
@@ -75,14 +76,20 @@ public:
 protected:
 	void ExitPressed(const FInputActionValue& Value);
 	void VehicleLook(const FInputActionValue& Value);
+	void VehicleLookGamepad(const FInputActionValue& Value);
 	void VehicleMoveForward(const FInputActionValue& Value);
 	void VehicleMoveRight(const FInputActionValue& Value);
 	void EnsureInputObjects();
 	void ApplyVehicleMappingContext();
 
-	/** Busca un punto de salida libre con sweep de capsula. Devuelve el primero encontrado
-	 *  o la posicion por defecto si ninguno esta libre. */
-	FVector FindSafeExitLocation() const;
+	/** Busca un punto de salida libre: capsula sin solape, suelo debajo (max. MaxExitDrop) y
+	 *  linea de vision desde la cabina para no salir al otro lado de un muro. Si ninguno vale,
+	 *  devuelve false y OutLocation queda con el candidato por defecto. */
+	bool FindSafeExitLocation(FVector& OutLocation) const;
+
+	/** Caida maxima aceptada bajo un punto de salida (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CW|Vehicle")
+	float MaxExitDrop = 400.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Vehicle")
 	TObjectPtr<UBoxComponent> CollisionBox;
@@ -112,6 +119,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> LookAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> LookGamepadAction;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> DriveForwardAction;

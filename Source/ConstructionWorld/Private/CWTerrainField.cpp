@@ -265,13 +265,17 @@ void ACWTerrainField::BuildSection(int32 ChunkX, int32 ChunkY, bool bWithCollisi
 			const int32 C = LocalIndex(X + 1, Y);
 			const int32 D = LocalIndex(X + 1, Y + 1);
 
+			// Orden horario visto desde arriba (convencion de UE): la cara frontal y la
+			// normal de colision miran a +Z. Con A,C,B la colision devolvia ImpactNormal -Z
+			// y rompia la salida segura y la pendiente del volquete (el material de doble
+			// cara lo ocultaba al renderizar).
 			Triangles.Add(A);
-			Triangles.Add(C);
 			Triangles.Add(B);
+			Triangles.Add(C);
 
 			Triangles.Add(C);
-			Triangles.Add(D);
 			Triangles.Add(B);
+			Triangles.Add(D);
 		}
 	}
 

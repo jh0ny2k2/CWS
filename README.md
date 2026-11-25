@@ -3,7 +3,7 @@
 Estado actual: **H0 (Fundaciones), H1-A (personaje y controles), H1-B (maquinaria), H2 (terreno deformable) y H4 (pulido gráfico y sonoro) completados**.
 El objetivo inmediato es la primera misión jugable de H3.
 
-> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 46 actores `CW_` (incluye decorado de obra, iluminación de tarde y postproceso global), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`) y terreno deformable (`-CWTestTerrain`, 6 ciclos PASS). Falta empaquetar una build base.
+> Estado de la build: el módulo C++ **compila sin errores** con UE 5.8 (`UnrealEditor-ConstructionWorld.dll`), el nivel `/Game/Maps/TestLevel` está generado y verificado con 46 actores `CW_` (incluye decorado de obra, iluminación de tarde y postproceso global), y el mapa `/Game/Maps/TerrainPrototype` está disponible para benchmark comparativo. Pasan en headless los tests de H1-A (`CW_TEST_RESULT: PASS cycles=10`), excavadora (`-CWTestExcavator`), volquete (`-CWTestTruck`) y terreno deformable (`-CWTestTerrain`, T-001…T-007 PASS). Todas se lanzan con `.ScriptsRunTests.ps1` (añade `-Build` para compilar antes). Falta empaquetar una build base.
 
 ## Panel de seguimiento
 
@@ -163,12 +163,15 @@ Pulsa **Play** (Alt+P). Debes ver el escenario, el cubo-placeholder del personaj
 | Acción | Tecla |
 |---|---|
 | Moverse | W A S D |
-| Mirar | Ratón |
+| Mirar | Ratón (sensibilidad: `cw.Input.MouseSensitivity`, invertir: `cw.Input.InvertY 1`) |
+| Zoom de cámara (3ª persona) | Rueda del ratón |
 | Saltar | Espacio |
 | Interactuar / entrar al vehículo | E |
 | Cambiar 1ª / 3ª persona | V |
 | Salir del vehículo | F |
 | Salir del juego (PIE) | Esc |
+
+Con mando (Xbox): stick izquierdo mover/conducir, stick derecho mirar, A saltar, X entrar, B salir, cruceta zoom.
 
 **Métricas de rendimiento (F0.06)**
 

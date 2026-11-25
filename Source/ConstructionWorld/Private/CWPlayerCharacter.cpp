@@ -1,5 +1,6 @@
 #include "CWPlayerCharacter.h"
 
+#include "CWInputConfig.h"
 #include "CWInteractionComponent.h"
 #include "CWLog.h"
 #include "Camera/CameraComponent.h"
@@ -17,6 +18,7 @@
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "InputTriggers.h"
 #include "Math/RotationMatrix.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -120,6 +122,8 @@ void ACWPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	EnhancedInput->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &ACWPlayerCharacter::MoveForward);
 	EnhancedInput->BindAction(MoveRightAction, ETriggerEvent::Triggered, this, &ACWPlayerCharacter::MoveRight);
 	EnhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACWPlayerCharacter::Look);
+	EnhancedInput->BindAction(LookGamepadAction, ETriggerEvent::Triggered, this, &ACWPlayerCharacter::LookGamepad);
+	EnhancedInput->BindAction(ZoomAction, ETriggerEvent::Triggered, this, &ACWPlayerCharacter::ZoomInput);
 	EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &ACWPlayerCharacter::StartJump);
 	EnhancedInput->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACWPlayerCharacter::StopJump);
 	EnhancedInput->BindAction(InteractAction, ETriggerEvent::Started, this, &ACWPlayerCharacter::InteractInput);
@@ -141,6 +145,12 @@ void ACWPlayerCharacter::EnsureInputObjects()
 
 	LookAction = NewObject<UInputAction>(this, TEXT("IA_Look"));
 	LookAction->ValueType = EInputActionValueType::Axis2D;
+
+	LookGamepadAction = NewObject<UInputAction>(this, TEXT("IA_LookGamepad"));
+	LookGamepadAction->ValueType = EInputActionValueType::Axis2D;
+
+	ZoomAction = NewObject<UInputAction>(this, TEXT("IA_CameraZoom"));
+	ZoomAction->ValueType = EInputActionValueType::Axis1D;
 
 	JumpAction = NewObject<UInputAction>(this, TEXT("IA_Jump"));
 	JumpAction->ValueType = EInputActionValueType::Boolean;
@@ -167,6 +177,24 @@ void ACWPlayerCharacter::EnsureInputObjects()
 	DefaultMappingContext->MapKey(JumpAction, EKeys::SpaceBar);
 	DefaultMappingContext->MapKey(InteractAction, EKeys::E);
 	DefaultMappingContext->MapKey(ToggleCameraAction, EKeys::V);
+	DefaultMappingContext->MapKey(ZoomAction, EKeys::MouseWheelAxis);
+
+	// F1.07: mando (disposicion Xbox). Sticks con zona muerta para evitar deriva.
+	CWInput::MapKey(DefaultMappingContext, MoveForwardAction, EKeys::Gamepad_LeftY, this, false, true);
+	CWInput::MapKey(DefaultMappingContext, MoveRightAction, EKeys::Gamepad_LeftX, this, false, true);
+	CWInput::MapKey(DefaultMappingContext, LookGamepadAction, EKeys::Gamepad_Right2D, this, false, true);
+	DefaultMappingContext->MapKey(JumpAction, EKeys::Gamepad_FaceButton_Bottom);
+	DefaultMappingContext->MapKey(InteractAction, EKeys::Gamepad_FaceButton_Left);
+	DefaultMappingContext->MapKey(ToggleCameraAction, EKeys::Gamepad_RightThumbstick);
+	// Cruceta arriba/abajo: zoom por pulsos (cada 0,1 s mantenida) en vez de cada frame.
+	for (const FKey& ZoomKey : { EKeys::Gamepad_DPad_Up, EKeys::Gamepad_DPad_Down })
+	{
+		FEnhancedActionKeyMapping& ZoomMap = CWInput::MapKey(
+			DefaultMappingContext, ZoomAction, ZoomKey, this, ZoomKey == EKeys::Gamepad_DPad_Down);
+		UInputTriggerPulse* Pulse = NewObject<UInputTriggerPulse>(this);
+		Pulse->Interval = 0.1f;
+		ZoomMap.Triggers.Add(Pulse);
+	}
 }
 
 void ACWPlayerCharacter::MoveForward(const FInputActionValue& Value)
@@ -197,14 +225,27 @@ void ACWPlayerCharacter::MoveRight(const FInputActionValue& Value)
 
 void ACWPlayerCharacter::Look(const FInputActionValue& Value)
 {
-	const FVector2D LookAxis = Value.Get<FVector2D>();
-	if (!Controller)
+	CWInput::ApplyLook(this, Value.Get<FVector2D>(), false);
+}
+
+void ACWPlayerCharacter::LookGamepad(const FInputActionValue& Value)
+{
+	CWInput::ApplyLook(this, Value.Get<FVector2D>(), true);
+}
+
+void ACWPlayerCharacter::ZoomInput(const FInputActionValue& Value)
+{
+	const float Axis = Value.Get<float>();
+	if (bFirstPerson || !CameraBoom || FMath::IsNearlyZero(Axis))
 	{
 		return;
 	}
 
-	AddControllerYawInput(LookAxis.X);
-	AddControllerPitchInput(LookAxis.Y);
+	// Rueda hacia delante (positivo) acerca la camara.
+	const float MinDist = FMath::Min(MinZoomDistance, MaxZoomDistance);
+	const float MaxDist = FMath::Max(MinZoomDistance, MaxZoomDistance);
+	CameraBoom->TargetArmLength = FMath::Clamp(
+		CameraBoom->TargetArmLength - FMath::Sign(Axis) * ZoomStep, MinDist, MaxDist);
 }
 
 void ACWPlayerCharacter::StartJump(const FInputActionValue& Value)

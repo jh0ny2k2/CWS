@@ -4,8 +4,6 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "CWPerformanceSubsystem.generated.h"
 
-class FAutoConsoleCommand;
-
 /**
  * Metricas de rendimiento del proyecto (F0.06).
  *
@@ -30,6 +28,12 @@ public:
 	virtual void Deinitialize() override;
 	//~ End USubsystem
 
+protected:
+	/** Solo mundos de juego (Game/PIE): no medir el viewport del editor ni previews. */
+	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
+
+public:
+
 	//~ Begin FTickableGameObject
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
@@ -43,9 +47,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CW|Performance")
 	float GetAverageFrameMs() const { return AverageFrameMs; }
 
-	/** Percentil 95 del tiempo de frame (ms): el "1% low" aproximado. */
+	/** Percentil 95 del tiempo de frame (ms): solo el 5% de frames es mas lento. */
 	UFUNCTION(BlueprintPure, Category = "CW|Performance")
-	float GetP95FrameMs() const { return P95FrameMs; }
+	float GetP95FrameMs() const;
 
 	/** Peor tiempo de frame de la ventana (ms). */
 	UFUNCTION(BlueprintPure, Category = "CW|Performance")
@@ -53,7 +57,7 @@ public:
 
 	/** Numero de muestras validas en la ventana. */
 	UFUNCTION(BlueprintPure, Category = "CW|Performance")
-	int32 GetSampleCount() const { return FrameTimesMs.Num(); }
+	int32 GetSampleCount() const { return SampleCount; }
 
 	/** Escribe un resumen de metricas en LogCWPerf. */
 	UFUNCTION(BlueprintCallable, Category = "CW|Performance")
@@ -70,20 +74,21 @@ public:
 	static constexpr int32 MaxSamples = 240;
 
 private:
-	/** Anade una muestra y recalcula las estadisticas. */
+	/** Anade una muestra al buffer circular y actualiza media y peor frame (sin copias). */
 	void AddSample(float FrameMs);
 
-	/** Recalcula media, percentil 95 y peor frame. */
-	void RecalculateStats();
-
+	/** Buffer circular de tiempos de frame (ms). */
 	TArray<float> FrameTimesMs;
+	int32 NextIndex = 0;
+	int32 SampleCount = 0;
+	double SumMs = 0.0;
 
 	float AverageFPS = 0.f;
 	float AverageFrameMs = 0.f;
-	float P95FrameMs = 0.f;
 	float WorstFrameMs = 0.f;
 	float TimeSinceReport = 0.f;
 
-	TUniquePtr<FAutoConsoleCommand> ReportNowCommand;
-	TUniquePtr<FAutoConsoleCommand> ResetCommand;
+	/** El p95 exige ordenar: se calcula bajo demanda y se cachea hasta la siguiente muestra. */
+	mutable float CachedP95FrameMs = 0.f;
+	mutable bool bP95Dirty = true;
 };

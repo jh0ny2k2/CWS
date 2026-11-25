@@ -609,7 +609,7 @@ void ACWTestRunner::StartTerrainTest(bool bInExitWhenDone)
 	bExitWhenDone = bInExitWhenDone;
 	bFinished = false;
 
-	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: programada la bateria de terreno (T-001..T-006)."));
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: programada la bateria de terreno (T-001..T-007)."));
 
 	GetWorldTimerManager().SetTimer(
 		TerrainTimer, this, &ACWTestRunner::RunTerrainTest, 1.0f, false);
@@ -804,6 +804,19 @@ void ACWTestRunner::RunTerrainTest()
 		&& Removed6 > 0.5f
 		&& FMath::IsNearlyEqual(GravelDensity, 1800.f);
 
+	// T-007: la colision del terreno mira hacia arriba (ImpactNormal +Z). Con el orden de
+	// triangulos invertido la normal salia -Z y fallaban la salida segura y la pendiente.
+	TerrainB->FlushDirtyChunks(1000);
+	FHitResult Hit7;
+	FCollisionQueryParams Params7(TEXT("CWTestTerrainNormal"), true);
+	const FVector Probe7 = CenterB + FVector(500.f, 500.f, 0.f);
+	const bool bHit7 = GetWorld()->LineTraceSingleByChannel(
+		Hit7, Probe7 + FVector(0.f, 0.f, 800.f), Probe7 - FVector(0.f, 0.f, 1500.f), ECC_WorldStatic, Params7);
+	const bool bT7 = bHit7 && Hit7.GetActor() == TerrainB
+		&& Hit7.ImpactNormal.Z > 0.9f && Hit7.Normal.Z > 0.9f;
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST T7 normal de colision: hit=%d actor=%s impact=%s normal=%s"),
+		bHit7, *GetNameSafe(Hit7.GetActor()), *Hit7.ImpactNormal.ToCompactString(), *Hit7.Normal.ToCompactString());
+
 	// F3.08: acopio con volumen y masa.
 	const float AddedPile = Stockpile->AddMaterial(5.f);
 	const float RemovedPile = Stockpile->RemoveMaterial(2.f);
@@ -837,20 +850,20 @@ void ACWTestRunner::RunTerrainTest()
 		MemoryA / 1024.0, MemoryTarget / 1024.0, SaveMs, LoadMs,
 		Elapsed3 * 1000.0, Elapsed3, TerrainA->MaxChunkRebuildsPerTick);
 
-	const bool bPass = bT1 && bT2 && bT3 && bT4 && bT5 && bT6 && bStockpile && bBenchmark;
+	const bool bPass = bT1 && bT2 && bT3 && bT4 && bT5 && bT6 && bT7 && bStockpile && bBenchmark;
 
 	if (bPass)
 	{
 		FinishTest(true, FString::Printf(
 			TEXT("terreno OK: T1 %.1f m3, T2 tope %.1f cm, T3 %.0f ms/1000 ops, T4 conserva %.2f m3, "
-			     "T5 guardado/carga y corrupcion, T6 grava, acopio %.1f m3"),
-			Sum1, Height2, Elapsed3 * 1000.0, Final4, Stockpile->GetVolumeM3()));
+			     "T5 guardado/carga y corrupcion, T6 grava, T7 normal +Z, acopio %.1f m3"),
+			Sum1, Height2, Elapsed3 * 1000.0, Final4 - Initial4, Stockpile->GetVolumeM3()));
 	}
 	else
 	{
 		FinishTest(false, FString::Printf(
-			TEXT("terreno: fallo T1=%d T2=%d T3=%d T4=%d T5=%d T6=%d acopio=%d benchmark=%d"),
-			bT1, bT2, bT3, bT4, bT5, bT6, bStockpile, bBenchmark));
+			TEXT("terreno: fallo T1=%d T2=%d T3=%d T4=%d T5=%d T6=%d T7=%d acopio=%d benchmark=%d"),
+			bT1, bT2, bT3, bT4, bT5, bT6, bT7, bStockpile, bBenchmark));
 	}
 }
 
@@ -964,7 +977,7 @@ static FAutoConsoleCommandWithWorldAndArgs GCWTestTruck(
 
 static FAutoConsoleCommandWithWorldAndArgs GCWTestTerrain(
 	TEXT("cw.Test.Terrain"),
-	TEXT("Ejecuta la bateria T-001..T-006 del terreno deformable (excavacion, volumen, guardado y materiales)."),
+	TEXT("Ejecuta la bateria T-001..T-007 del terreno deformable (excavacion, volumen, guardado y materiales)."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda(
 		[](const TArray<FString>& Args, UWorld* World)
 		{

@@ -237,3 +237,14 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - `Scripts/ci/validate.mjs` y `CONTRIBUTING.md` apuntan ahora a `CLAUDE.md` (sustituye a `AGENTS.md`).
 - Verificado con jsdom: 0 errores JS en las 3 páginas, 10 hitos/96 tareas, filtros, stepper, modal, cambio de tema y 26 entradas de memoria. Capturas con Chrome headless no posibles (acceso denegado al escribir el PNG).
 - Archivos afectados: `web/index.html`, `web/kanban.html`, `web/memoria.html`, `web/assets/{style.css,shell.js,app.js,kanban.js,memoria.js,data.js}`, `Scripts/ci/validate.mjs`, `CONTRIBUTING.md`, `memoria.md`.
+
+## [2026-11-25 12:10] Revisión H0 + H1-A: tests reproducibles, bug de terreno y controles
+
+- Nuevo `Scripts/RunTests.ps1`: ejecuta las suites headless (EnterExit, Excavator, Truck, Terrain), lee `CW_TEST_RESULT` y el código de salida, logs en `Saved/Tests/`. Opciones `-Suite`, `-Build`, `-ExtraArgs`.
+- **BUG-012 (Crítico, resuelto):** `Binaries/Win64/UnrealEditor.modules` estaba lleno de bytes nulos y el juego no cargaba el módulo. Regenerado recompilando; revisado que ningún otro archivo tenga bytes nulos.
+- Terminado e integrado el trabajo a medias de H1-A (estaba sin registrar): interacción con prioridad/distancia/cono/línea de visión (`CWInteractable.h`, `CWInteractionComponent`), entrada compartida y mando (`CWInputConfig.h/.cpp`, zoom, sensibilidad, invertir Y), salida segura con suelo y línea de visión (`CWVehicleBase`), métricas con buffer circular (`CWPerformanceSubsystem`).
+- **BUG-011 (Alto, resuelto):** la nueva salida segura destapó que la colisión del terreno tenía las normales invertidas (triángulos A,C,B). Corregido a A,B,C en `CWTerrainField.cpp`; también arreglaba la pendiente del volquete. Nuevo test **T-007** en `CWTestRunner.cpp`.
+- **BUG-013 (Bajo, resuelto):** `Jugar (TestLevel).cmd` mostraba controles inexistentes; corregido. README con zoom, mando y `RunTests.ps1`.
+- Resultado: compilación OK y **4/4 suites PASS** (EnterExit 10 ciclos, Excavator, Truck, Terrain T1–T7).
+- Panel: bitácora en F0.04, F0.05, F0.06, F1.02, F1.03, F1.04, F1.05, F1.07, F3.02; nueva tarea T-007; bugs BUG-011/012/013; `CW.updated` 2026-11-25 12:10.
+- Archivos afectados: `Scripts/RunTests.ps1`, `Source/ConstructionWorld/Public/{CWInputConfig,CWInteractable,CWInteractionComponent,CWPerformanceSubsystem,CWPlayerCharacter,CWVehicleBase}.h`, `Source/ConstructionWorld/Private/{CWInputConfig,CWInteractionComponent,CWPerformanceSubsystem,CWPlayerCharacter,CWVehicleBase,CWTerrainField,CWTestRunner}.cpp`, `Jugar (TestLevel).cmd`, `README.md`, `web/assets/data.js`, `memoria.md`.

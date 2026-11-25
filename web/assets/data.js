@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-25 11:15",
+  updated: "2026-11-25 12:10",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -81,7 +81,8 @@ window.CW = {
             { date: "2026-11-06 18:28", text: "Remoto origin → github.com/jh0ny2k2/CWS.git configurado y rama renombrada a main." },
             { date: "2026-11-06 18:40", text: "Push completado: 3 commits y el PDF del plan subidos a GitHub (LFS verificado). El token se usó solo para el push y la URL del remoto quedó limpia." },
             { date: "2026-11-07 11:46", text: "Añadida CI de GitHub Actions: validación de datos del panel, manifiesto de assets, estructura UE, sintaxis JS y prohibición de LogTemp." },
-            { date: "2026-11-07 11:48", text: "Creados CONTRIBUTING.md (ramas main/develop/feature, commits por tarjeta) y Scripts/Build.ps1 para compilar en local." }
+            { date: "2026-11-07 11:48", text: "Creados CONTRIBUTING.md (ramas main/develop/feature, commits por tarjeta) y Scripts/Build.ps1 para compilar en local." },
+            { date: "2026-11-25 12:10", text: "Revisión H0: nuevo Scripts/RunTests.ps1 que lanza las 4 suites headless (EnterExit, Excavator, Truck, Terrain), lee CW_TEST_RESULT y el código de salida, guarda logs en Saved/Tests y resume PASS/FAIL. Resultado: 4/4 PASS. El validador exige ahora CLAUDE.md (sustituye a AGENTS.md)." }
           ]
         },
         {
@@ -94,7 +95,8 @@ window.CW = {
             { date: "2026-11-06 18:15", text: "Riesgo identificado: se crean InputAction/InputMappingContext en runtime; es lo primero que puede fallar al compilar en 5.8." },
             { date: "2026-11-06 18:55", text: "Primer intento de compilación: UBT rechazó los targets por usar BuildSettingsVersion.V5/Unreal5_6. Corregido a V7/Unreal5_8 y relanzada la compilación." },
             { date: "2026-11-06 18:52", text: "Compilación correcta: 13/13 acciones, los 6 .cpp y el módulo enlazado en UnrealEditor-ConstructionWorld.dll. El Enhanced Input en runtime compila sin errores." },
-            { date: "2026-11-06 18:57", text: "TestLevel.umap creado (26 KB) y reabierto con un script de verificación: los 10 actores CW_ están en el nivel, incluido CW_TestVehicle (CWVehicleBase)." }
+            { date: "2026-11-06 18:57", text: "TestLevel.umap creado (26 KB) y reabierto con un script de verificación: los 10 actores CW_ están en el nivel, incluido CW_TestVehicle (CWVehicleBase)." },
+            { date: "2026-11-25 12:10", text: "Revisión H0: el juego headless no arrancaba («game module ConstructionWorld could not be found») porque Binaries/Win64/UnrealEditor.modules estaba lleno de bytes nulos (escritura corrupta). Regenerado con una recompilación; registrado como BUG-012." }
           ]
         },
         {
@@ -106,7 +108,8 @@ window.CW = {
             { date: "2026-11-06 18:15", text: "Aparcado hasta tener una build ejecutable; sin motor no se pueden medir FPS ni tiempos de frame." },
             { date: "2026-11-07 11:40", text: "Implementados CWLog (6 categorías), CWUnits y UCWPerformanceSubsystem (ventana de 240 frames, FPS/frame/p95/peor y resumen cada 30 s)." },
             { date: "2026-11-07 11:44", text: "El HUD muestra FPS/ms/p95 (cw.Perf.Hud) y se sustituyeron los 4 LogTemp por categorías propias. Compilación: Succeeded (9 acciones)." },
-            { date: "2026-11-07 11:48", text: "Documentadas unidades, coordenadas, nomenclatura y presupuesto de rendimiento en docs/CONVENCIONES.md." }
+            { date: "2026-11-07 11:48", text: "Documentadas unidades, coordenadas, nomenclatura y presupuesto de rendimiento en docs/CONVENCIONES.md." },
+            { date: "2026-11-25 12:10", text: "Revisión H0: CWPerformanceSubsystem pasa a buffer circular (sin RemoveAt(0) ni copia+ordenación por frame; el p95 se calcula bajo demanda y se cachea), solo mide mundos Game/PIE y los comandos cw.Perf.ReportNow/Reset se registran una vez por proceso (antes chocaban con varios mundos)." }
           ]
         },
         {
@@ -161,7 +164,8 @@ window.CW = {
           evidence: "Alternancia con V entre FollowCamera y FirstPersonCamera; límites de pitch [-60°, 60°] fijados en PlayerCameraManager y bDoCollisionTest activo con ProbeSize=12.",
           log: [
             { date: "2026-11-06 16:25", text: "El cambio de vista con V alterna entre cámara de primavera y cámara de primera persona; sin límites de pitch ni zoom." },
-            { date: "2026-11-06 21:55", text: "Límites de pitch fijados a [-60°, 60°] y colisión de brazo con ProbeSize=12 implementados y compilados." }
+            { date: "2026-11-06 21:55", text: "Límites de pitch fijados a [-60°, 60°] y colisión de brazo con ProbeSize=12 implementados y compilados." },
+            { date: "2026-11-25 12:10", text: "Revisión H1-A: zoom de tercera persona con rueda/cruceta (180-800 cm, paso 40), sensibilidad de ratón cw.Input.MouseSensitivity, velocidad de stick cw.Input.GamepadLookRate escalada por DeltaSeconds e inversión cw.Input.InvertY (nuevo CWInputConfig)." }
           ]
         },
         {
@@ -171,7 +175,8 @@ window.CW = {
           evidence: "UCWInteractionComponent realiza sweep esférico a 400 cm cada 0.05 s; detecta ICWInteractable dinámicamente y expone GetFocusPrompt().",
           log: [
             { date: "2026-11-06 16:25", text: "ICWInteractable expone Interact y GetInteractionPrompt; el componente hace traza cada 0,05 s y guarda el actor enfocado." },
-            { date: "2026-11-06 21:55", text: "Integración verificada con ACWVehicleBase; compila sin errores y expone prompts de estado." }
+            { date: "2026-11-06 21:55", text: "Integración verificada con ACWVehicleBase; compila sin errores y expone prompts de estado." },
+            { date: "2026-11-25 12:10", text: "Revisión H1-A: la interfaz declara prioridad, distancia máxima propia y CanInteract. El componente elige entre candidatos por prioridad, cono de mira de 35°, distancia al punto más cercano de la colisión (no al pivote) y línea de visión; revalida el foco al pulsar." }
           ]
         },
         {
@@ -181,7 +186,8 @@ window.CW = {
           evidence: "TryEnter oculta/desactiva personaje y posee vehículo; ExitVehicle busca posición segura con sweep en 4 direcciones y restaura control.",
           log: [
             { date: "2026-11-06 16:25", text: "Revisado TryEnter/ExitVehicle; detectado que la salida no comprueba espacio (BUG-006) y que el socket DriverSeat no existe (BUG-007)." },
-            { date: "2026-11-06 21:55", text: "Corregidos BUG-006 y BUG-007: salida con sweep seguro en 4 direcciones y anclaje a BodyMesh con fallback. Compilado OK." }
+            { date: "2026-11-06 21:55", text: "Corregidos BUG-006 y BUG-007: salida con sweep seguro en 4 direcciones y anclaje a BodyMesh con fallback. Compilado OK." },
+            { date: "2026-11-25 12:10", text: "Revisión H1-A: salida segura reescrita: cápsula real del personaje, 7 candidatos, línea de visión desde la cabina, apoyo en suelo (caída máx. 4 m, pendiente ≤53°) y hueco libre; si no hay sitio, el jugador sigue al volante con aviso en vez de aparecer dentro de un muro. Sale de pie y mirando en la dirección del vehículo. Destapó BUG-011 (normales del terreno invertidas), ya corregido. EnterExit 10 ciclos: PASS." }
           ]
         },
         {
@@ -191,7 +197,8 @@ window.CW = {
           evidence: "Contextos independientes (IMC_Default e IMC_Vehicle); el vehículo tiene mapeos W/S (avance/retroceso), A/D (giro) y F (salir).",
           log: [
             { date: "2026-11-06 16:25", text: "Cada pawn añade y quita su InputMappingContext al poseerlo; pendiente de probar el cambio repetido con mando." },
-            { date: "2026-11-06 21:55", text: "Añadido mapeo completo de conducción para el vehículo (IA_DriveForward W/S, IA_DriveRight A/D, IA_ExitVehicle F). Compilado y verificado." }
+            { date: "2026-11-06 21:55", text: "Añadido mapeo completo de conducción para el vehículo (IA_DriveForward W/S, IA_DriveRight A/D, IA_ExitVehicle F). Compilado y verificado." },
+            { date: "2026-11-25 12:10", text: "Revisión H1-A: mapeos de mando (Xbox) en personaje y vehículo: stick izq. mover/conducir con zona muerta 0,2, stick der. mirar, A saltar, X entrar, B salir, cruceta zoom por pulsos." }
           ]
         },
         {
@@ -214,7 +221,8 @@ window.CW = {
             { date: "2026-11-06 21:55", text: "Mecánicas de conducción y cambio de mapeos compiladas. Iniciando pruebas automáticas de ciclo completo." },
             { date: "2026-11-07 12:05", text: "Añadido ACWTestRunner + UCWTestSubsystem: 10 ciclos de entrar/salir validando posesión, visibilidad, colisión, movimiento, suelo, duplicados y cámara. Comando de consola cw.Test.EnterExit." },
             { date: "2026-11-07 12:08", text: "Primera ejecución headless: falso positivo porque el test medía los bounds de la cámara/spring arm. Corregido para usar solo geometría con colisión (BUG-010)." },
-            { date: "2026-11-07 12:11", text: "Ejecución headless final: CW_TEST_RESULT: PASS cycles=10 (cámara OK; 10 ciclos sin duplicar actores ni perder controles)." }
+            { date: "2026-11-07 12:11", text: "Ejecución headless final: CW_TEST_RESULT: PASS cycles=10 (cámara OK; 10 ciclos sin duplicar actores ni perder controles)." },
+            { date: "2026-11-25 12:10", text: "Revisión H1-A: re-ejecutado con Scripts/RunTests.ps1 tras los cambios de interacción, mando y salida segura: CW_TEST_RESULT PASS cycles=10." }
           ]
         }
       ]
@@ -372,7 +380,8 @@ window.CW = {
           status: "done",
           evidence: "ACWTerrainField deformable dividido en chunks de 8x8 celdas con UProceduralMeshComponent, alturas en float cm, colisión dinámica compleja y cálculo volumétrico continuo.",
           log: [
-            { date: "2026-11-07 13:16", text: "Implementado heightfield deformable por chunks con modificación en tiempo real y cálculo exacto de m3." }
+            { date: "2026-11-07 13:16", text: "Implementado heightfield deformable por chunks con modificación en tiempo real y cálculo exacto de m3." },
+            { date: "2026-11-25 12:10", text: "Revisión H2: corregido el orden de los triángulos del heightfield (A,C,B → A,B,C). La colisión devolvía ImpactNormal -Z; el material de doble cara lo ocultaba en pantalla. Afectaba a la salida segura y a la pendiente del volquete (BUG-011)." }
           ]
         },
         {
@@ -517,6 +526,15 @@ window.CW = {
           evidence: "Test headless T6: alteración de celdas a Grava (1800 kg/m3) comprobada en terreno y reflejada en acopio de 3.0 m3. PASS.",
           log: [
             { date: "2026-11-07 13:16", text: "Modificación de propiedades y densidad de material verificada." }
+          ]
+        },
+        {
+          id: "T-007",
+          title: "Test: la colisión del terreno mira hacia arriba",
+          status: "done",
+          evidence: "Test headless T7: traza vertical sobre el campo B devuelve ImpactNormal y Normal = +Z (antes -Z). -CWTestTerrain PASS.",
+          log: [
+            { date: "2026-11-25 12:10", text: "Añadido a la batería de terreno tras encontrar BUG-011, para que la regresión no vuelva a pasar desapercibida." }
           ]
         }
       ]
@@ -821,6 +839,38 @@ window.CW = {
       log: [
         { date: "2026-11-07 12:08", text: "La primera ejecución headless falló con bounds de 2.000 unidades que incluían la cámara/spring arm, no el volumen físico del vehículo." },
         { date: "2026-11-07 12:11", text: "Corregido a GetComponentsBoundingBox(false). El test vuelve a pasar con 10 ciclos." }
+      ]
+    },
+    {
+      id: "BUG-011",
+      title: "Normales de colisión del terreno invertidas",
+      detail: "Resuelto: los triángulos del heightfield se generaban en orden A,C,B y la colisión devolvía ImpactNormal -Z (el material de doble cara lo ocultaba). Rompía la salida segura sobre terreno y hacía que el volquete acelerase cuesta arriba. Corregido a A,B,C en CWTerrainField::BuildSection y cubierto por el test T-007.",
+      severity: "Alto",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-25 11:50", text: "EnterExit fallaba: los 7 candidatos de salida se rechazaban por «sin suelo válido» con ImpactNormal=(0,0,-1) sobre CWTerrainField." },
+        { date: "2026-11-25 12:10", text: "Orden de triángulos corregido y test T-007 añadido. 4/4 suites PASS." }
+      ]
+    },
+    {
+      id: "BUG-012",
+      title: "Manifiesto UnrealEditor.modules corrupto: el juego no carga el módulo",
+      detail: "Resuelto: Binaries/Win64/UnrealEditor.modules contenía solo bytes nulos y el juego se cerraba con «The game module 'ConstructionWorld' could not be found». Regenerado recompilando; el código fuente no estaba afectado.",
+      severity: "Crítico",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-25 11:40", text: "Todas las suites headless salían a los 9 s sin resultado. El log mostraba el diálogo de módulo no encontrado." },
+        { date: "2026-11-25 11:45", text: "Borrado el manifiesto y recompilado: vuelve a listar UnrealEditor-ConstructionWorld.dll. Revisados los demás archivos del proyecto: sin bytes nulos." }
+      ]
+    },
+    {
+      id: "BUG-013",
+      title: "El lanzador «Jugar (TestLevel).cmd» mostraba controles que no existen",
+      detail: "Resuelto: decía «F entrar», «flechas para la torreta» y «R/F bascular». Ahora lista los controles reales (E entrar, G motor, R modo, W/S pluma, A/D brazo, Q/E torreta, Z/X cuchara, T excavar, B bascular, mando).",
+      severity: "Bajo",
+      status: "Resuelto",
+      log: [
+        { date: "2026-11-25 12:10", text: "Textos del lanzador corregidos a partir de los MapKey del código." }
       ]
     }
   ]

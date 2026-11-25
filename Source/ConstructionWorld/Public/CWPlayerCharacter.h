@@ -37,6 +37,8 @@ protected:
 	void MoveForward(const FInputActionValue& Value);
 	void MoveRight(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
+	void LookGamepad(const FInputActionValue& Value);
+	void ZoomInput(const FInputActionValue& Value);
 	void StartJump(const FInputActionValue& Value);
 	void StopJump(const FInputActionValue& Value);
 	void InteractInput(const FInputActionValue& Value);
@@ -76,6 +78,13 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> LookAction;
 
+	/** Stick derecho: se aplica como velocidad (escalada por DeltaSeconds). */
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> LookGamepadAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ZoomAction;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> JumpAction;
 
@@ -87,4 +96,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CW|Camera")
 	bool bFirstPerson = false;
+
+	/** F1.02: limites y paso del zoom de tercera persona (rueda del raton / cruceta). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Camera", meta = (ClampMin = "100.0"))
+	float MinZoomDistance = 180.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Camera", meta = (ClampMin = "100.0"))
+	float MaxZoomDistance = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CW|Camera", meta = (ClampMin = "1.0"))
+	float ZoomStep = 40.f;
 };
