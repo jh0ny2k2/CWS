@@ -2,6 +2,7 @@
 
 #include "CWHUD.h"
 #include "CWPlayerCharacter.h"
+#include "CWPlayerController.h"
 #include "CWWeatherSystem.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -10,6 +11,7 @@ ACWGameMode::ACWGameMode()
 {
 	DefaultPawnClass = ACWPlayerCharacter::StaticClass();
 	HUDClass = ACWHUD::StaticClass();
+	PlayerControllerClass = ACWPlayerController::StaticClass();
 }
 
 void ACWGameMode::BeginPlay()

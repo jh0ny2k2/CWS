@@ -3,7 +3,11 @@
 #include "CWLog.h"
 #include "CWExcavator.h"
 #include "CWDumpTruck.h"
+#include "CWContractSubsystem.h"
 #include "CWDumpZone.h"
+#include "CWNotificationSubsystem.h"
+#include "CWTerrainSubsystem.h"
+#include "CWWorkParcel.h"
 #include "CWPlayerCharacter.h"
 #include "CWStockpile.h"
 #include "CWTerrainField.h"
@@ -1162,5 +1166,199 @@ static FAutoConsoleCommandWithWorldAndArgs GCWTestGround(
 			if (Runner)
 			{
 				Runner->StartGroundFollowTest(false);
+			}
+		}));
+
+// --- Prueba del contrato CWS-001 (H3) -------------------------------------------------
+
+void ACWTestRunner::StartContractTest(bool bInExitWhenDone)
+{
+	PendingCycles = 1;
+	bExitWhenDone = bInExitWhenDone;
+	bFinished = false;
+
+	UE_LOG(LogCWTest, Display, TEXT("CW_TEST: programada la prueba del contrato CWS-001."));
+
+	// 1.5 s: deja que el terreno, la parcela y el contrato hagan su primer tick.
+	GetWorldTimerManager().SetTimer(
+		ContractTimer, this, &ACWTestRunner::RunContractTest, 1.5f, false);
+}
+
+void ACWTestRunner::RunContractTest()
+{
+	UWorld* World = GetWorld();
+	UCWContractSubsystem* Contract = World ? World->GetSubsystem<UCWContractSubsystem>() : nullptr;
+	UCWTerrainSubsystem* Terrain = World ? World->GetSubsystem<UCWTerrainSubsystem>() : nullptr;
+	UCWNotificationSubsystem* Notices = World ? World->GetSubsystem<UCWNotificationSubsystem>() : nullptr;
+	if (!Contract || !Terrain || !Notices || !EnsureActors())
+	{
+		FinishTest(false, TEXT("contrato: faltan subsistemas o jugador"));
+		return;
+	}
+
+	Contract->bAutomationMode = true;
+	Contract->EnsureInitialized();
+	ACWWorkParcel* Parcel = Contract->GetParcel();
+	ACWDumpZone* Zone = Contract->GetDumpZone();
+	ACWExcavator* LevelExcavator = Contract->FindExcavator();
+	if (!Parcel || !Zone || !LevelExcavator)
+	{
+		FinishTest(false, FString::Printf(TEXT("contrato: parcela=%d zona=%d excavadora=%d"),
+			Parcel != nullptr, Zone != nullptr, LevelExcavator != nullptr));
+		return;
+	}
+
+	const FCWContractDefinition& Def = Contract->GetDefinition();
+	TArray<FString> Failures;
+	auto Check = [&Failures](bool bOk, const FString& What)
+	{
+		UE_LOG(LogCWTest, Display, TEXT("CW_TEST contrato %s: %s"), bOk ? TEXT("OK   ") : TEXT("FALLO"), *What);
+		if (!bOk)
+		{
+			Failures.Add(What);
+		}
+	};
+
+	// C1: estado inicial y transicion invalida rechazada.
+	FString Error;
+	Check(Contract->GetState() == ECWContractState::Available, TEXT("C1 estado inicial Disponible"));
+	Check(!Contract->TryTransition(ECWContractState::Completed, Error) && !Error.IsEmpty()
+		&& Contract->GetState() == ECWContractState::Available, TEXT("C1 Disponible->Completado rechazada"));
+
+	// C2: aceptar arranca el tutorial.
+	Check(Contract->AcceptContract() && Contract->GetState() == ECWContractState::Accepted
+		&& Contract->GetTutorialStep() == ECWTutorialStep::GoToExcavator, TEXT("C2 aceptar -> Aceptado + tutorial"));
+	Check(!Contract->AcceptContract(), TEXT("C2 aceptar dos veces rechazado"));
+
+	// C3: excavar fuera de la parcela no cuenta, penaliza y avisa.
+	const int32 NoticesBefore = Notices->GetHistory().Num();
+	const FVector ParcelCenter = Parcel->GetActorLocation();
+	const FVector Outside = ParcelCenter + FVector(-2500.f, -1500.f, 0.f);
+	ECWSoilType Soil = ECWSoilType::Earth;
+	const float OutsideDug = Terrain->DigAt(Outside, 120.f, 120.f, 1.2f, Soil);
+	Check(OutsideDug > 0.5f && !Parcel->ContainsLocation(Outside)
+		&& FMath::IsNearlyEqual(Contract->GetProgress().OutsideDigM3, OutsideDug, 0.01f)
+		&& Contract->GetProgress().ExcavatedM3 < 0.01f
+		&& Contract->GetState() == ECWContractState::Accepted
+		&& Notices->GetHistory().Num() > NoticesBefore,
+		FString::Printf(TEXT("C3 fuera de parcela: %.2f m3 penalizados, aviso emitido"), OutsideDug));
+
+	// C4: excavar dentro de la parcela cuenta y pasa a En curso.
+	float DugInside = 0.f;
+	for (int32 Index = 0; Index < 9; ++Index)
+	{
+		const FVector Point = ParcelCenter + FVector(-260.f + (Index % 3) * 260.f, -260.f + (Index / 3) * 260.f, 0.f);
+		DugInside += Terrain->DigAt(Point, 110.f, 120.f, 1.2f, Soil);
+	}
+	Check(DugInside > 8.f && FMath::IsNearlyEqual(Contract->GetProgress().ExcavatedM3, DugInside, 0.02f)
+		&& Contract->GetState() == ECWContractState::InProgress,
+		FString::Printf(TEXT("C4 dentro de parcela: %.2f m3, estado En curso"), DugInside));
+
+	// C5: devolver tierra a la parcela descuenta; verter fuera es ilegal.
+	const float Returned = Terrain->DepositAt(ParcelCenter, 150.f, 1.f, ECWSoilType::Earth);
+	Check(FMath::IsNearlyEqual(Contract->GetProgress().ExcavatedM3, DugInside - Returned, 0.02f),
+		FString::Printf(TEXT("C5 devuelto a parcela %.2f m3 se descuenta"), Returned));
+	const float Dumped = Terrain->DepositAt(Outside + FVector(0.f, 600.f, 0.f), 150.f, 0.5f, ECWSoilType::Earth);
+	Check(Dumped > 0.4f && FMath::IsNearlyEqual(Contract->GetProgress().IllegalDumpM3, Dumped, 0.01f),
+		FString::Printf(TEXT("C5 vertido ilegal %.2f m3 registrado"), Dumped));
+
+	// C6: el tutorial avanza al acercarse a la excavadora.
+	Character->SetActorLocation(LevelExcavator->GetActorLocation() + FVector(0.f, 450.f, 50.f), false, nullptr, ETeleportType::TeleportPhysics);
+	Contract->UpdateTutorial();
+	Check(Contract->GetTutorialStep() == ECWTutorialStep::EnterExcavator, TEXT("C6 tutorial: junto a la excavadora -> subir"));
+	FVector Marker;
+	FString MarkerLabel;
+	Check(Contract->GetObjectiveLocation(Marker, MarkerLabel) && MarkerLabel == TEXT("Excavadora")
+		&& !Contract->GetObjectiveText().IsEmpty(), TEXT("C6 marcador y texto de objetivo"));
+
+	// C7: guardar, modificar y cargar restaura contrato, terreno y maquinas.
+	const FString Slot = TEXT("CWTest_Contrato");
+	Error.Reset();
+	const float SavedExcavated = Contract->GetProgress().ExcavatedM3;
+	const float SavedVolume = Terrain->GetTotalVolumeM3();
+	const FVector SavedExcavatorLocation = LevelExcavator->GetActorLocation();
+	LevelExcavator->SetFuelLiters(87.f);
+	Check(Contract->SaveGameToSlot(Slot, true, Error), FString::Printf(TEXT("C7 guardar partida %s"), Error.IsEmpty() ? TEXT("") : *Error));
+
+	Zone->DeliverLoad(4.f, nullptr);
+	Terrain->DigAt(ParcelCenter + FVector(150.f, 150.f, 0.f), 110.f, 120.f, 1.2f, Soil);
+	LevelExcavator->SetActorLocation(SavedExcavatorLocation + FVector(900.f, 0.f, 0.f));
+	LevelExcavator->SetFuelLiters(50.f);
+	const bool bModified = Contract->GetProgress().DeliveredM3 > 3.9f && Contract->GetProgress().Trips == 1;
+
+	Error.Reset();
+	const bool bLoaded = Contract->LoadGameFromSlot(Slot, Error);
+	Check(bModified && bLoaded
+		&& Contract->GetProgress().DeliveredM3 < 0.01f && Contract->GetProgress().Trips == 0
+		&& FMath::IsNearlyEqual(Contract->GetProgress().ExcavatedM3, SavedExcavated, 0.01f)
+		&& Contract->GetState() == ECWContractState::InProgress
+		&& Contract->GetTutorialStep() == ECWTutorialStep::EnterExcavator,
+		FString::Printf(TEXT("C7 cargar restaura el contrato (%s)"), *Error));
+	Check(FMath::IsNearlyEqual(Terrain->GetTotalVolumeM3(), SavedVolume, 0.05f),
+		FString::Printf(TEXT("C7 terreno restaurado %.2f / %.2f m3"), Terrain->GetTotalVolumeM3(), SavedVolume));
+	Check(FVector::Dist(LevelExcavator->GetActorLocation(), SavedExcavatorLocation) < 5.f
+		&& FMath::IsNearlyEqual(LevelExcavator->GetFuelLiters(), 87.f, 0.01f),
+		TEXT("C7 excavadora: posicion y combustible restaurados"));
+
+	// C8: entregar el objetivo completa el contrato y liquida.
+	const float BalanceBefore = Contract->GetBalance();
+	Zone->DeliverLoad(Def.TargetVolumeM3 * 0.5f, nullptr);
+	const bool bStillInProgress = Contract->GetState() == ECWContractState::InProgress;
+	Zone->DeliverLoad(Def.TargetVolumeM3 * 0.5f, nullptr);
+	const FCWContractResult Result = Contract->GetLastResult();
+	const float ExpectedPenalties = OutsideDug * Def.OutsideDigPenaltyPerM3 + Dumped * Def.IllegalDumpPenaltyPerM3;
+	Check(bStillInProgress && Contract->GetState() == ECWContractState::Completed && Result.bValid
+		&& FMath::IsNearlyEqual(Result.Reward, Def.Reward)
+		&& FMath::IsNearlyEqual(Result.Penalties, ExpectedPenalties, 0.05f)
+		&& FMath::IsNearlyEqual(Result.Net, Result.Reward - Result.FuelCost - Result.MachineCost - Result.Penalties, 0.01f)
+		&& FMath::IsNearlyEqual(Contract->GetBalance(), BalanceBefore + Result.Net, 0.01f)
+		&& Contract->GetProgress().Trips == 2,
+		FString::Printf(TEXT("C8 completado: pago %.0f, penalizaciones %.2f, neto %.2f, saldo %.0f"),
+			Result.Reward, Result.Penalties, Result.Net, Contract->GetBalance()));
+
+	// C9: un contrato completado no vuelve a En curso; reiniciar lo deja Disponible.
+	Error.Reset();
+	Check(!Contract->TryTransition(ECWContractState::InProgress, Error), TEXT("C9 Completado->En curso rechazada"));
+	Contract->ResetContract();
+	Check(Contract->GetState() == ECWContractState::Available && Contract->GetProgress().DeliveredM3 == 0.f,
+		TEXT("C9 reiniciar -> Disponible sin progreso"));
+
+	// C10: telemetria escrita con los eventos clave.
+	FString Telemetry;
+	const bool bTelemetry = !Contract->GetTelemetryFile().IsEmpty()
+		&& FFileHelper::LoadFileToString(Telemetry, *Contract->GetTelemetryFile());
+	Check(bTelemetry && Telemetry.Contains(TEXT("\"event\":\"contract_complete\""))
+		&& Telemetry.Contains(TEXT("\"event\":\"dig\"")) && Telemetry.Contains(TEXT("\"event\":\"save\"")),
+		FString::Printf(TEXT("C10 telemetria en %s"), *Contract->GetTelemetryFile()));
+
+	UCWContractSubsystem::DeleteSave(Slot);
+	IFileManager::Get().Delete(*FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), Slot + TEXT("_terreno.cwt")));
+
+	if (Failures.Num() == 0)
+	{
+		FinishTest(true, FString::Printf(TEXT("contrato OK: C1-C10 (excavado %.1f m3, neto %s, telemetria)"),
+			DugInside, *CWContract::FormatMoney(Result.Net)));
+	}
+	else
+	{
+		FinishTest(false, FString::Printf(TEXT("contrato: %d fallo(s): %s"), Failures.Num(), *FString::Join(Failures, TEXT(" | "))));
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GCWTestContract(
+	TEXT("cw.Test.Contract"),
+	TEXT("Prueba del contrato CWS-001: estados, parcela, penalizaciones, guardado/carga, liquidacion y telemetria."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda(
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World)
+			{
+				return;
+			}
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ACWTestRunner* Runner = World->SpawnActor<ACWTestRunner>(ACWTestRunner::StaticClass(), FTransform::Identity, Params))
+			{
+				Runner->StartContractTest(false);
 			}
 		}));

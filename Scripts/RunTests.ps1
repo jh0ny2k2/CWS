@@ -10,8 +10,8 @@
 # Los logs quedan en Saved/Tests/<suite>.log. Sale con 1 si alguna falla.
 
 param(
-    [ValidateSet("EnterExit", "Excavator", "Truck", "Terrain", "Ground")]
-    [string[]]$Suite = @("EnterExit", "Excavator", "Truck", "Terrain", "Ground"),
+    [ValidateSet("EnterExit", "Excavator", "Truck", "Terrain", "Ground", "Contract")]
+    [string[]]$Suite = @("EnterExit", "Excavator", "Truck", "Terrain", "Ground", "Contract"),
 
     [int]$Cycles = 10,
 
@@ -48,6 +48,7 @@ $flags = @{
     Truck     = "-CWTestTruck"
     Terrain   = "-CWTestTerrain"
     Ground    = "-CWTestGround"
+    Contract  = "-CWTestContract"
 }
 
 $results = @()

@@ -13,7 +13,9 @@ public class ConstructionWorld : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"ProceduralMeshComponent"
+			"ProceduralMeshComponent",
+			"Slate",
+			"SlateCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

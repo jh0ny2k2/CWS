@@ -53,6 +53,9 @@ public:
 	/** Programa la prueba de apoyo sobre el suelo: plano, rampa de frente/lado y caida. */
 	void StartGroundFollowTest(bool bExitWhenDone);
 
+	/** Programa la prueba del contrato CWS-001 (H3: estados, parcela, economia, guardado y telemetria). */
+	void StartContractTest(bool bExitWhenDone);
+
 private:
 	void RunEnterExitTest();
 	void RunExcavatorStabilityTest();
@@ -60,6 +63,7 @@ private:
 	void RunTerrainTest();
 	void SetupGroundFollowTest();
 	void CheckGroundFollowTest();
+	void RunContractTest();
 	bool SpawnExcavatorForTest();
 	bool SpawnTruckAndZoneForTest();
 	bool SpawnTerrainForTest();
@@ -99,6 +103,7 @@ private:
 	FTimerHandle TruckTimer;
 	FTimerHandle TerrainTimer;
 	FTimerHandle GroundTimer;
+	FTimerHandle ContractTimer;
 
 	/** Vehiculos de la prueba de suelo: 0 plano, 1 rampa de frente, 2 rampa de lado, 3 caida. */
 	UPROPERTY(Transient)

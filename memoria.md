@@ -264,3 +264,16 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Archivos afectados: `Source/ConstructionWorld/Public/{CWVehicleBase,CWTestRunner}.h`, `Source/ConstructionWorld/Private/{CWVehicleBase,CWExcavator,CWDumpTruck,CWTestRunner,CWTestSubsystem}.cpp`, `Scripts/RunTests.ps1`, `web/assets/data.js`, `README.md`, `memoria.md`.
 - Pendiente: probarlo jugando a mano en TestLevel (solo verificado en headless).
 - Commit `194692b` subido a `origin/main`.
+
+## [2026-11-25 21:10] H3: contrato CWS-001 jugable de principio a fin (F4.01–F4.07; F4.08 en curso)
+
+- **F4.01** `CWContractTypes.h` + `UCWContractSubsystem` (subsistema de mundo con tick): estados Disponible/Aceptado/En curso/Completado/Fallido/Abandonado con transiciones validadas, plazo de 40 min.
+- **F4.02** `ACWWorkParcel` (9×9 m, estacas, cinta y cartel; se crea sola en TestLevel delante de la excavadora). `UCWTerrainSubsystem::OnTerrainEdited` informa de cada excavación/depósito: cuenta lo excavado dentro, descuenta lo devuelto y penaliza excavar fuera o verter fuera de la zona.
+- **F4.03** HUD: panel de misión (estado, saldo, plazo, excavado, carga, entregado, objetivo) y marcador del objetivo (rombo o flecha en el borde).
+- **F4.04** Tutorial de 10 pasos automático y `UCWNotificationSubsystem` (avisos con fundido); 12 fallos de las máquinas que solo iban al log ahora se explican al jugador.
+- **F4.05** Liquidación: 4.500 € − gasoil − horas de máquina − penalizaciones; saldo de empresa.
+- **F4.06** `UCWSaveGame`: contrato, tutorial, saldo, jugador, vehículos y terreno (.cwt). Guardado solo en momentos seguros, autoguardado y F5/F9.
+- **F4.07** `ACWPlayerController` + `SCWMenuWidget` (Slate): menú principal, informe del contrato, pausa (Esc/P), ajustes persistentes y liquidación; reiniciar con `?cwnew`. `-CWAutoShot` hace capturas de todos los menús/HUD y sale.
+- **F4.08** (en curso) telemetría JSONL en `Saved/Telemetry`; falta el testeo con jugadores nuevos.
+- Verificación: compilación OK, **6/6 suites PASS** (nueva `Contract`, C1–C10: transiciones, parcela, penalizaciones, tutorial, guardado/carga con terreno y máquinas, liquidación y telemetría). Capturas reales del juego revisadas; corregidos colores sRGB de los menús, botones planos, separación del marcador y aviso VSM de depuración (`r.Shadow.Virtual.AllowScreenOverflowMessages=0`).
+- Archivos: `Source/ConstructionWorld/Public/{CWContractTypes,CWContractSubsystem,CWSaveGame,CWWorkParcel,CWNotificationSubsystem,CWPlayerController,CWMenuWidget,CWHUD,CWTerrainSubsystem,CWExcavator,CWTestRunner,CWLog}.h`, `Source/ConstructionWorld/Private/{CWContractSubsystem,CWWorkParcel,CWNotificationSubsystem,CWPlayerController,CWMenuWidget,CWHUD,CWGameMode,CWTerrainSubsystem,CWExcavator,CWDumpTruck,CWVehicleBase,CWTestRunner,CWTestSubsystem,CWLog}.cpp`, `Source/ConstructionWorld/ConstructionWorld.Build.cs` (Slate, SlateCore), `Config/DefaultEngine.ini`, `Scripts/RunTests.ps1`, `web/assets/data.js`, `README.md`, `Hojaruta.md`, `memoria.md`.

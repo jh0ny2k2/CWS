@@ -2,6 +2,7 @@
 
 #include "CWDumpZone.h"
 #include "CWLog.h"
+#include "CWNotificationSubsystem.h"
 #include "CWTerrainSubsystem.h"
 #include "CWVehicleFXComponent.h"
 #include "Components/AudioComponent.h"
@@ -344,6 +345,7 @@ void ACWDumpTruck::Tick(float DeltaSeconds)
 		{
 			UE_LOG(LogCWVehicle, Warning,
 				TEXT("CWDumpTruck: caja levantada en movimiento; se ordena el retorno."));
+			UCWNotificationSubsystem::Notify(this, TEXT("No circules con la caja levantada: se baja sola por seguridad."), ECWNoticeSeverity::Warning);
 			TargetBedAngle = 0.f;
 		}
 	}
@@ -495,6 +497,7 @@ float ACWDumpTruck::AddLoad(float CubicMeters)
 		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWDumpTruck: %.2f m3 no caben en la caja y se derraman (total derramado %.2f m3)."),
 			Overflow, SpilledCubicMeters);
+		UCWNotificationSubsystem::Notify(this, TEXT("La caja del volquete esta llena: lo que no cabe se derrama."), ECWNoticeSeverity::Warning);
 	}
 
 	if (Accepted > KINDA_SMALL_NUMBER)
@@ -539,6 +542,7 @@ void ACWDumpTruck::SetBedTarget(float AngleDegrees)
 		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWDumpTruck: deten el camion antes de levantar la caja (%.0f cm/s)."),
 			CurrentSpeedCmS);
+		UCWNotificationSubsystem::Notify(this, TEXT("Deten el volquete antes de levantar la caja."), ECWNoticeSeverity::Warning);
 		return;
 	}
 
@@ -559,18 +563,21 @@ bool ACWDumpTruck::TryDump()
 		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWDumpTruck: la caja debe estar levantada (%.0f/%.0f grados)."),
 			CurrentBedAngle, MinDumpAngle);
+		UCWNotificationSubsystem::Notify(this, TEXT("Sube la caja con B antes de descargar."), ECWNoticeSeverity::Warning);
 		return false;
 	}
 
 	if (LoadCubicMeters <= KINDA_SMALL_NUMBER)
 	{
 		UE_LOG(LogCWVehicle, Warning, TEXT("CWDumpTruck: no hay material que descargar."));
+		UCWNotificationSubsystem::Notify(this, TEXT("El volquete esta vacio: no hay nada que descargar."), ECWNoticeSeverity::Info);
 		return false;
 	}
 
 	if (FMath::Abs(CurrentSpeedCmS) > MaxDumpSpeedCmS)
 	{
 		UE_LOG(LogCWVehicle, Warning, TEXT("CWDumpTruck: el camion debe estar parado para descargar."));
+		UCWNotificationSubsystem::Notify(this, TEXT("Deten el volquete para descargar."), ECWNoticeSeverity::Warning);
 		return false;
 	}
 

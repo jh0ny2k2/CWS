@@ -24,4 +24,15 @@ public:
 protected:
 	/** Panel de instrumentacion de cabina (H4 / F5.06). */
 	void DrawCabinInstruments(const class ACWExcavator& Excavator, float CenterX, float CenterY);
+
+	/** Panel de mision (F4.03): contrato, objetivo, excavado, carga y % entregado. */
+	void DrawMissionPanel(const class UCWContractSubsystem& Contract);
+
+	/** Marcador del siguiente objetivo en pantalla o flecha en el borde (F4.03). */
+	void DrawObjectiveMarker(const class UCWContractSubsystem& Contract);
+
+	/** Avisos del jugador con fundido (F4.04). */
+	void DrawNotices();
+
+	void DrawBar(float X, float Y, float W, float H, float Ratio, const FLinearColor& Fill);
 };

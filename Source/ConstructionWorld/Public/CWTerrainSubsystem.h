@@ -7,6 +7,9 @@
 
 class ACWTerrainField;
 
+/** Cambio de volumen hecho a traves del subsistema: negativo = excavado, positivo = depositado (m3). */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FCWTerrainEdited, const FVector& /*Center*/, float /*DeltaM3*/, ECWSoilType /*Soil*/);
+
 /**
  * Punto unico de acceso al terreno deformable (H2).
  *
@@ -45,6 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "CW|Terrain")
 	bool SetSoilTypeInArea(const FVector& WorldCenter, float RadiusCm, ECWSoilType SoilType);
+
+	/** Se emite tras cada DigAt/DepositAt con volumen real (contratos, telemetria). */
+	FCWTerrainEdited OnTerrainEdited;
 
 	UFUNCTION(BlueprintPure, Category = "CW|Terrain")
 	float GetTotalVolumeM3() const;

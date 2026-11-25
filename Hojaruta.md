@@ -1,7 +1,7 @@
 Hoja de ruta — Construction World Simulator
 Plan de desarrollo de un simulador de construcción 3D fotorrealista · Unreal Engine 5.8
 
-> **Estado real (2026-11-09):** Fase 0 / H0 **completada** (UE 5.8 y Blender 5.2.3 instalados, proyecto compilando, TestLevel verificado, CI, métricas y convenciones), H1-A **completado** (test automático de 10 ciclos entrar/salir en PASS), H1-B **completado** (excavadora y volquete operativos con pruebas headless en PASS), H2 **completado** (terreno deformable por chunks, persistencia con checksum, integración con cuchara y volquete, 6 tests en PASS) y H4 **completado** (materiales PBR con suciedad, iluminación de tarde y postproceso, cabinas detalladas con instrumentación, polvo y huellas, audio de motor/hidráulica y lluvia con `cw.Weather.Rain`). El siguiente hito es H3 (primera misión jugable); H5 (mundo abierto) queda pendiente. El seguimiento tarea a tarea vive en el panel: `web/index.html` + `web/kanban.html` (datos en `web/assets/data.js`). Este documento es el plan de referencia, no el estado vivo.
+> **Estado real (2026-11-25):** Fase 0 / H0 **completada** (UE 5.8 y Blender 5.2.3 instalados, proyecto compilando, TestLevel verificado, CI, métricas y convenciones), H1-A **completado** (test automático de 10 ciclos entrar/salir en PASS), H1-B **completado** (excavadora y volquete operativos con pruebas headless en PASS), H2 **completado** (terreno deformable por chunks, persistencia con checksum, integración con cuchara y volquete, 6 tests en PASS) y H4 **completado** (materiales PBR con suciedad, iluminación de tarde y postproceso, cabinas detalladas con instrumentación, polvo y huellas, audio de motor/hidráulica y lluvia con `cw.Weather.Rain`). H3 (primera misión jugable) está **en curso**: el contrato CWS-001 ya se juega de principio a fin (contratos con estados, parcela balizada, HUD de misión, tutorial, liquidación, guardado seguro, menús y telemetría; F4.01–F4.07 hechas) y quedan los modelos realistas de las máquinas (F4.09) y el testeo con jugadores nuevos (F4.08). H5 (mundo abierto) queda pendiente. El seguimiento tarea a tarea vive en el panel: `web/index.html` + `web/kanban.html` (datos en `web/assets/data.js`). Este documento es el plan de referencia, no el estado vivo.
 
 La idea es desarrollar un videojuego inspirado en Construction Simulator, pero con mayor profundidad en las físicas, la maquinaria, la construcción y el realismo gráfico.
 
@@ -12,7 +12,7 @@ Planificación
 
 
 
-Fases 0, H1-A, H1-B y H2 completados · H3 (primera misión) siguiente — seguimiento vivo en el panel web
+Fases 0, H1-A, H1-B, H2 y H4 completados · H3 (primera misión) en curso — seguimiento vivo en el panel web
 Fases
 10
 

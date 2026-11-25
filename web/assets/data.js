@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-25 19:40",
+  updated: "2026-11-25 21:10",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -21,7 +21,9 @@ window.CW = {
     { title: "Cerrar H1-B: excavadora y camión volquete operativos", status: "done" },
     { title: "Cerrar H4: iluminación de tarde, materiales PBR, audio, polvo, lluvia e instrumentación", status: "done" },
     { title: "Panel: página Memoria y rediseño profesional (barra lateral, tema claro/oscuro)", status: "done" },
-    { title: "Revisar y mejorar hito por hito lo ya hecho (H0 → H4)", status: "doing" }
+    { title: "Revisar y mejorar hito por hito lo ya hecho (H0 → H4)", status: "doing" },
+    { title: "H3: contrato CWS-001 jugable (contratos, parcela, HUD, tutorial, economía, guardado, menús)", status: "done" },
+    { title: "H3: modelos realistas de excavadora y volquete (F4.09) y testeo con jugadores (F4.08)", status: "doing" }
   ],
 
   phases: [
@@ -556,16 +558,91 @@ window.CW = {
       window: "Semanas 25-32",
       goal: "Cerrar el bucle completo con una misión entretenida, estable y repetible.",
       gate: "Un jugador nuevo completa CWS-001 sin ayuda tras el tutorial, y el contrato y el terreno sobreviven a cerrar y abrir.",
-      status: "todo",
+      status: "doing",
       tasks: [
-        { id: "F4.01", title: "Sistema de contratos con estados y reglas de transición", status: "todo" },
-        { id: "F4.02", title: "Marcador de parcela, límites de trabajo y puntos de entrega", status: "todo" },
-        { id: "F4.03", title: "HUD de misión: volumen retirado, carga, ruta y % entregado", status: "todo" },
-        { id: "F4.04", title: "Tutorial paso a paso y mensajes de error comprensibles", status: "todo" },
-        { id: "F4.05", title: "Recompensa y costes básicos al completar CWS-001", status: "todo" },
-        { id: "F4.06", title: "Guardado en momentos seguros y restauración integral", status: "todo" },
-        { id: "F4.07", title: "Menú principal, pausa, ajustes y reinicio de misión", status: "todo" },
-        { id: "F4.08", title: "Telemetría del recorrido y testeo con usuarios nuevos", status: "todo" }
+        {
+          id: "F4.01",
+          title: "Sistema de contratos con estados y reglas de transición",
+          status: "done",
+          evidence: "UCWContractSubsystem (subsistema de mundo con tick) con ECWContractState Disponible→Aceptado→En curso→Completado/Fallido/Abandonado→Disponible; CWContract::IsTransitionAllowed rechaza el resto. Test -CWTestContract C1, C2 y C9 en PASS (Disponible→Completado, aceptar dos veces y Completado→En curso rechazadas).",
+          log: [
+            { date: "2026-11-25 21:10", text: "Implementado CWContractTypes.h (estados, definición, progreso y liquidación) y CWContractSubsystem.h/.cpp. Plazo de 40 min: al agotarse pasa a Fallido. Suite Contract en PASS." }
+          ]
+        },
+        {
+          id: "F4.02",
+          title: "Marcador de parcela, límites de trabajo y puntos de entrega",
+          status: "done",
+          evidence: "ACWWorkParcel: 9×9 m en planta con 8 estacas apoyadas en el suelo, cinta entre ellas y cartel «OBRA CWS-001». El contrato solo cuenta lo excavado dentro (tolerancia de 40 cm) y lo entregado en ACWDumpZone (OnLoadDelivered). UCWTerrainSubsystem emite OnTerrainEdited con cada excavación y depósito. Tests C3–C5 en PASS; captura CW_03_hud_mision.png.",
+          log: [
+            { date: "2026-11-25 21:10", text: "La parcela se crea sola en TestLevel delante de la excavadora (1400,-900) si el nivel no trae una. Lo devuelto a la parcela se descuenta; excavar fuera o verter fuera de la zona se registra como penalización." }
+          ]
+        },
+        {
+          id: "F4.03",
+          title: "HUD de misión: volumen retirado, carga, ruta y % entregado",
+          status: "done",
+          evidence: "Panel superior derecho con contrato, estado, saldo, plazo restante, barras de excavado/carga/entregado y objetivo actual; marcador ámbar sobre el objetivo (rombo + distancia) o flecha en el borde si está fuera de pantalla. Verificado en partida real con -CWAutoShot (CW_03_hud_mision.png).",
+          log: [
+            { date: "2026-11-25 21:10", text: "ACWHUD::DrawMissionPanel y DrawObjectiveMarker. Corregidas la separación flecha/texto y la altura del panel tras revisar las capturas." }
+          ]
+        },
+        {
+          id: "F4.04",
+          title: "Tutorial paso a paso y mensajes de error comprensibles",
+          status: "done",
+          evidence: "10 pasos (ir a la excavadora, subir, arrancar, modo excavación, excavar en parcela, cargar volquete, subir al volquete, ir a la zona, descargar) que avanzan solos y se saltan si ya se cumplen. UCWNotificationSubsystem muestra avisos con fundido y agrupa repeticiones; 12 fallos de las máquinas que antes solo iban al log ahora se explican al jugador (sin gasoil, cuchara lejos del suelo, caja levantada, volquete en marcha…). Test C6 en PASS. La validación con jugadores nuevos queda en F4.08.",
+          log: [
+            { date: "2026-11-25 21:10", text: "Tutorial en UCWContractSubsystem::UpdateTutorial y textos en GetObjectiveText; avisos conectados en CWExcavator, CWDumpTruck y CWVehicleBase. Pistas desactivables (cw.Tutorial.Hints / Ajustes)." }
+          ]
+        },
+        {
+          id: "F4.05",
+          title: "Recompensa y costes básicos al completar CWS-001",
+          status: "done",
+          evidence: "Liquidación: pago 4.500 € − gasoil (1,45 €/L consumidos) − horas de máquina (165 €/h) − penalizaciones (15 €/m³ fuera de parcela, 25 €/m³ vertido ilegal). Saldo de empresa persistente (25.000 € iniciales). Test C8 en PASS: neto = pago − costes y saldo actualizado; pantalla de liquidación verificada (CW_06_liquidacion.png).",
+          log: [
+            { date: "2026-11-25 21:10", text: "ComputeSettlement/CompleteContract; el gasoil solo cuenta consumo (repostar no lo devuelve)." }
+          ]
+        },
+        {
+          id: "F4.06",
+          title: "Guardado en momentos seguros y restauración integral",
+          status: "done",
+          evidence: "UCWSaveGame guarda contrato, paso del tutorial, saldo, jugador y cada vehículo (posición, motor, gasoil, carga) más el terreno en .cwt. Solo se guarda si es seguro (caja bajada, máquinas paradas, sin caer); autoguardado al aceptar, al cambiar de paso, tras cada entrega y al completar; F5/F9 manual. Test C7 en PASS: tras modificar entregas, terreno, posición y gasoil, la carga lo restaura todo (terreno −10,19 m³ idéntico).",
+          log: [
+            { date: "2026-11-25 21:10", text: "SaveGameToSlot/LoadGameFromSlot con restauración en caliente (sin recargar el nivel); «Continuar partida» del menú usa el mismo camino." }
+          ]
+        },
+        {
+          id: "F4.07",
+          title: "Menú principal, pausa, ajustes y reinicio de misión",
+          status: "done",
+          evidence: "ACWPlayerController + SCWMenuWidget (Slate): menú principal (continuar/nueva/ajustes/salir), informe del contrato, pausa (Esc/P: reanudar, guardar, cargar, reiniciar, ajustes, menú, salir), ajustes persistentes en GameUserSettings.ini (sensibilidad, volumen, invertir Y, pistas, FPS) y liquidación. Reiniciar reabre el nivel con ?cwnew. Capturas CW_01…CW_06 revisadas.",
+          log: [
+            { date: "2026-11-25 21:10", text: "Menús desactivados en pruebas automáticas (-CWTest*, -nullrhi, -CWNoMenu). Corregidos colores (sRGB) y estilo plano de botones tras revisar las capturas; silenciado el aviso VSM de depuración en pantalla." }
+          ]
+        },
+        {
+          id: "F4.08",
+          title: "Telemetría del recorrido y testeo con usuarios nuevos",
+          status: "doing",
+          evidence: "",
+          note: "Telemetría hecha: Saved/Telemetry/CWS-001_<fecha>.jsonl con eventos de estado, pasos del tutorial, excavaciones, depósitos, entregas, guardados, menús y posición cada 5 s (cw.Telemetry). Falta la parte humana: que jugadores nuevos completen CWS-001 sin ayuda y revisar sus registros.",
+          log: [
+            { date: "2026-11-25 21:10", text: "Telemetría implementada en UCWContractSubsystem::LogEvent y comprobada por el test C10. Pendiente el testeo con usuarios nuevos (no automatizable)." }
+          ]
+        },
+        {
+          id: "F4.09",
+          title: "Modelos realistas de excavadora y volquete (Blender → FBX → UE)",
+          status: "doing",
+          evidence: "",
+          note: "Añadida al hito H3 a petición del usuario: sustituir las formas básicas por modelos con detalle, respetando los pivotes del rig actual.",
+          log: [
+            { date: "2026-11-25 19:55", text: "Tarea creada. Plan: modelado por script en Blender 5.2 (piezas separadas con el origen en cada pivote), exportación FBX, importación con Python del editor y cambio de mallas en C++ manteniendo las formas básicas como respaldo." }
+          ]
+        }
       ]
     },
     {

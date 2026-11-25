@@ -2,6 +2,7 @@
 
 #include "CWDumpTruck.h"
 #include "CWLog.h"
+#include "CWNotificationSubsystem.h"
 #include "CWTerrainField.h"
 #include "CWTerrainSubsystem.h"
 #include "CWVehicleFXComponent.h"
@@ -565,6 +566,7 @@ void ACWExcavator::UpdateEngine(float DeltaSeconds)
 	{
 		FuelLiters = 0.f;
 		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: sin combustible; el motor se detiene."));
+		UCWNotificationSubsystem::Notify(this, TEXT("La excavadora se ha quedado sin gasoil y el motor se ha parado."), ECWNoticeSeverity::Error);
 		StopEngine();
 	}
 }
@@ -759,6 +761,7 @@ void ACWExcavator::StartEngine()
 	if (FuelLiters <= 0.f)
 	{
 		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: no se puede arrancar sin combustible."));
+		UCWNotificationSubsystem::Notify(this, TEXT("No hay gasoil: la excavadora no arranca."), ECWNoticeSeverity::Error);
 		return;
 	}
 
@@ -832,6 +835,7 @@ bool ACWExcavator::DigOrLoadTruck()
 	if (!bEngineRunning)
 	{
 		UE_LOG(LogCWVehicle, Warning, TEXT("CWExcavator: el motor debe estar en marcha para excavar."));
+		UCWNotificationSubsystem::Notify(this, TEXT("Arranca el motor con G antes de excavar."), ECWNoticeSeverity::Warning);
 		return false;
 	}
 
@@ -882,6 +886,7 @@ bool ACWExcavator::DigOrLoadTruck()
 
 		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWExcavator: no hay camion ni terreno al alcance para vaciar la cuchara."));
+		UCWNotificationSubsystem::Notify(this, TEXT("No hay volquete al alcance de la cuchara (acercalo a menos de 8 m) ni suelo donde vaciarla."), ECWNoticeSeverity::Warning);
 		return false;
 	}
 
@@ -923,6 +928,7 @@ bool ACWExcavator::DigOrLoadTruck()
 	{
 		UE_LOG(LogCWVehicle, Warning,
 			TEXT("CWExcavator: la cuchara no esta cerca del suelo (%.0f cm)."), DigReachCm);
+		UCWNotificationSubsystem::Notify(this, TEXT("La cuchara no llega al suelo: bajala con W/S y A/D antes de pulsar T."), ECWNoticeSeverity::Warning);
 		return false;
 	}
 

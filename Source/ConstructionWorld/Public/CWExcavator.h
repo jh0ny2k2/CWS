@@ -111,6 +111,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
 	float GetFuelLiters() const { return FuelLiters; }
 
+	/** Fija el combustible (restauracion de partidas guardadas, F4.06). */
+	UFUNCTION(BlueprintCallable, Category = "CW|Excavator|Engine")
+	void SetFuelLiters(float Liters) { FuelLiters = FMath::Clamp(Liters, 0.f, MaxFuelLiters); }
+
 	UFUNCTION(BlueprintPure, Category = "CW|Excavator|Engine")
 	float GetFuelRatio() const { return MaxFuelLiters > 0.f ? FuelLiters / MaxFuelLiters : 0.f; }
 

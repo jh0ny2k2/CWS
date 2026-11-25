@@ -67,14 +67,24 @@ float UCWTerrainSubsystem::DigAt(const FVector& WorldCenter, float RadiusCm,
 	}
 
 	OutSoilType = Field->GetSoilTypeAtLocation(WorldCenter);
-	return Field->DigAt(WorldCenter, RadiusCm, MaxDepthCm, RequestedVolumeM3);
+	const float Removed = Field->DigAt(WorldCenter, RadiusCm, MaxDepthCm, RequestedVolumeM3);
+	if (Removed > KINDA_SMALL_NUMBER)
+	{
+		OnTerrainEdited.Broadcast(WorldCenter, -Removed, OutSoilType);
+	}
+	return Removed;
 }
 
 float UCWTerrainSubsystem::DepositAt(const FVector& WorldCenter, float RadiusCm,
 	float VolumeM3, ECWSoilType SoilType)
 {
 	ACWTerrainField* Field = FindTerrainAt(WorldCenter);
-	return Field ? Field->DepositAt(WorldCenter, RadiusCm, VolumeM3, SoilType) : 0.f;
+	const float Deposited = Field ? Field->DepositAt(WorldCenter, RadiusCm, VolumeM3, SoilType) : 0.f;
+	if (Deposited > KINDA_SMALL_NUMBER)
+	{
+		OnTerrainEdited.Broadcast(WorldCenter, Deposited, SoilType);
+	}
+	return Deposited;
 }
 
 bool UCWTerrainSubsystem::SetSoilTypeInArea(const FVector& WorldCenter,

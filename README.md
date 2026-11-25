@@ -169,7 +169,9 @@ Pulsa **Play** (Alt+P). Debes ver el escenario, el cubo-placeholder del personaj
 | Interactuar / entrar al vehículo | E |
 | Cambiar 1ª / 3ª persona | V |
 | Salir del vehículo | F |
-| Salir del juego (PIE) | Esc |
+| Pausa (menú: guardar, cargar, reiniciar, ajustes) | Esc o P (en el editor usa P: Esc cierra el PIE) |
+| Guardar / cargar partida | F5 / F9 |
+| Aceptar el contrato sin menú | J |
 
 Con mando (Xbox): stick izquierdo mover/conducir, stick derecho mirar, A saltar, X entrar, B salir, cruceta zoom.
 
@@ -195,6 +197,19 @@ El HUD muestra `FPS | ms | p95 ms` en la esquina superior izquierda. Comandos de
 | Panel inferior en cabina | Régimen, combustible, presión hidráulica y carga de cuchara |
 
 Los materiales PBR viven en `Content/ConstructionWorld/Materials` y se generan con `Scripts\Python\cw_build_pbr_materials.py`. El audio de motor e hidráulica está en `Content/ConstructionWorld/Audio`.
+
+**Primera misión: contrato CWS-001 «Vaciado de parcela» (H3)**
+
+Al arrancar aparece el menú principal: *Nueva partida* abre el informe del contrato y, al aceptarlo, empieza el tutorial guiado. Hay que excavar dentro de la parcela balizada (estacas naranjas delante de la excavadora), cargar el volquete y entregar 10 m³ en la zona de descarga. El panel superior derecho muestra el excavado, la carga, lo entregado, el plazo y el saldo, y un marcador ámbar señala el siguiente objetivo. Al terminar se abre la liquidación: pago menos gasoil, horas de máquina y penalizaciones (excavar fuera de la parcela o verter fuera de la zona).
+
+| Comando / opción | Efecto |
+|---|---|
+| `cw.Tutorial.Hints 0` / `1` | Oculta / muestra los pasos del tutorial y el marcador |
+| `cw.Telemetry 0` / `1` | Desactiva / activa la telemetría en `Saved/Telemetry/*.jsonl` |
+| `-CWNoMenu` | Arranca sin menú principal (contrato disponible con J) |
+| `-CWAutoShot` | Recorre menús y HUD, guarda capturas en `Saved/Screenshots` y sale |
+
+La partida se guarda sola en momentos seguros (al aceptar, al cambiar de paso, tras cada entrega y al completar) en `Saved/SaveGames/CWS_Partida.sav`, junto a su terreno (`CWS_Partida_terreno.cwt`).
 
 Las unidades y convenciones de código están en `docs/CONVENCIONES.md`.
 

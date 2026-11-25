@@ -3,6 +3,7 @@
 #include "CWInputConfig.h"
 #include "CWPlayerCharacter.h"
 #include "CWLog.h"
+#include "CWNotificationSubsystem.h"
 #include "CWVehicleFXComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
@@ -488,6 +489,7 @@ bool ACWVehicleBase::FindSafeExitLocation(FVector& OutLocation) const
 
 	UE_LOG(LogCWVehicle, Warning,
 		TEXT("CWVehicleBase::FindSafeExitLocation - %s sin punto de salida libre."), *GetName());
+	UCWNotificationSubsystem::Notify(this, TEXT("No hay sitio libre para bajar: aparta la maquina de los obstaculos."), ECWNoticeSeverity::Warning);
 	return false;
 }
 
