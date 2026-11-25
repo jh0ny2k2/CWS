@@ -1,6 +1,6 @@
 # Contribuir a Construction World
 
-Este documento fija el flujo de trabajo del repositorio (**F0.04**). Las reglas del agente están en `AGENTS.md`.
+Este documento fija el flujo de trabajo del repositorio (**F0.04**). Las reglas del agente están en `CLAUDE.md`.
 
 ## Ramas
 
@@ -14,7 +14,7 @@ Flujo recomendado:
 
 1. Crear la rama desde `develop`: `git switch -c feature/F0.06-metricas develop`.
 2. Implementar y compilar en local (`Scripts/Build.ps1`).
-3. Comentar y cerrar la tarjeta en `web/assets/data.js` (regla 4 de `AGENTS.md`).
+3. Comentar y cerrar la tarjeta en `web/assets/data.js` (regla 4 de `CLAUDE.md`).
 4. Commit con el ID de la tarjeta.
 5. Push de la rama y pull request a `develop`; cuando esté probado, `develop` → `main`.
 
@@ -29,7 +29,7 @@ BUG-008: el HUD delega la interaccion al conductor del vehiculo
 
 - Un commit por tarjeta o por cambio coherente.
 - No mezclar refactors grandes con correcciones de bugs.
-- Al cerrar una tarjeta, el push es obligatorio (regla 5 de `AGENTS.md`).
+- Al cerrar una tarjeta, el push es obligatorio (regla 5 de `CLAUDE.md`).
 
 ## Compilación
 

@@ -1,5 +1,5 @@
 window.CW = {
-  updated: "2026-11-09 18:15",
+  updated: "2026-11-25 11:15",
   project: "Construction World Simulator",
   engine: "Unreal Engine 5.8",
   source: "Plan Maestro v1.0 (04.11.2026) + docs/ARQUITECTURA.md",
@@ -10,7 +10,7 @@ window.CW = {
     { title: "Crear este panel de seguimiento (hoja de ruta + kanban)", status: "done" },
     { title: "Commit inicial del repositorio y ADR de decisiones", status: "done" },
     { title: "Obtener una instalación de UE 5.8 utilizable (compila y abre el editor)", status: "done" },
-    { title: "Registrar la instalación en Epic Games Launcher (el parche falló el 06/11)", status: "todo" },
+    { title: "Registrar la instalación en Epic Games Launcher", status: "done" },
     { title: "Compilar el proyecto C++ por primera vez", status: "done" },
     { title: "Generar el nivel de pruebas /Game/Maps/TestLevel", status: "done" },
     { title: "Configurar almacenamiento UBA y resolver bucle de permisos en compilación", status: "done" },
@@ -18,8 +18,10 @@ window.CW = {
     { title: "Arrancar e inspeccionar el primer vehículo interactivo en PIE", status: "done" },
     { title: "Cerrar la Fase 0: herramientas, CI, métricas y assets", status: "done" },
     { title: "Cerrar H1-A: test automático de 10 ciclos entrar/salir y cámara", status: "done" },
-    { title: "Modelado y física de la excavadora (Hito H1-B)", status: "doing" },
-    { title: "Cerrar H4: iluminación de tarde, materiales PBR, audio, polvo, lluvia e instrumentación", status: "done" }
+    { title: "Cerrar H1-B: excavadora y camión volquete operativos", status: "done" },
+    { title: "Cerrar H4: iluminación de tarde, materiales PBR, audio, polvo, lluvia e instrumentación", status: "done" },
+    { title: "Panel: página Memoria y rediseño profesional (barra lateral, tema claro/oscuro)", status: "done" },
+    { title: "Revisar y mejorar hito por hito lo ya hecho (H0 → H4)", status: "doing" }
   ],
 
   phases: [
@@ -126,7 +128,9 @@ window.CW = {
             { date: "2026-11-06 17:05", text: "Creados web/index.html (hoja de ruta), web/kanban.html, estilos, datos y un servidor Node sin dependencias en el puerto 8100." },
             { date: "2026-11-06 17:20", text: "Verificadas las 6 rutas del panel por HTTP (200) y sintaxis de los 4 archivos JS con node --check." },
             { date: "2026-11-06 18:05", text: "Smoke test con jsdom: 10 fases, 101 tareas, 8 bugs y filtros correctos en ambas páginas." },
-            { date: "2026-11-06 18:20", text: "Añadido detalle emergente por tarjeta con bitácora y columna «Bugs arreglados»; los bugs resueltos se mueven allí automáticamente." }
+            { date: "2026-11-06 18:20", text: "Añadido detalle emergente por tarjeta con bitácora y columna «Bugs arreglados»; los bugs resueltos se mueven allí automáticamente." },
+            { date: "2026-11-25 10:30", text: "Nueva página web/memoria.html (+ assets/memoria.js): lee memoria.md en vivo vía /memoria.md en server.js y muestra las entradas agrupadas por día, las más nuevas primero, con buscador, filtro por día y orden invertible. Enlace «Memoria» en la navegación. Probado con jsdom: 26 entradas, 4 días, orden y búsqueda correctos." },
+            { date: "2026-11-25 11:15", text: "Rediseño profesional del panel: barra lateral común (assets/shell.js), tema claro/oscuro, KPIs con anillo de progreso, recorrido de hitos, tarjetas de kanban y modal nuevos, memoria en línea temporal. Corregido el color de severidad «Crítico». jsdom: 0 errores en las 3 páginas." }
           ]
         }
       ]

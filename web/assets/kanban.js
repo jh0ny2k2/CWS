@@ -2,13 +2,9 @@
   const CW = window.CW;
   if (!CW) return;
 
-  const STATUS_LABEL = { todo: "TO DO", doing: "DOING", done: "DONE", bug: "BUG", fixed: "ARREGLADO" };
+  const STATUS_LABEL = { todo: "Por hacer", doing: "En curso", done: "Hecho", bugs: "Bug abierto", fixed: "Arreglado" };
 
   document.title = "Kanban · " + CW.project;
-  document.getElementById("brandName").textContent = CW.project;
-  document.getElementById("brandEngine").textContent = CW.engine;
-  document.getElementById("updated").textContent = CW.updated;
-  document.getElementById("source").textContent = CW.source;
 
   const allTasks = [];
   CW.phases.forEach((phase) => {
@@ -27,11 +23,11 @@
   const bugsFixed = CW.bugs.filter((b) => isBugFixed(b));
 
   const columns = [
-    { key: "todo", title: "TO DO", cls: "todo" },
-    { key: "doing", title: "DOING", cls: "doing" },
-    { key: "done", title: "DONE", cls: "done" },
-    { key: "bugs", title: "BUGS ENCONTRADOS", cls: "bugs" },
-    { key: "fixed", title: "BUGS ARREGLADOS", cls: "fixed" }
+    { key: "todo", title: "Por hacer", cls: "todo" },
+    { key: "doing", title: "En curso", cls: "doing" },
+    { key: "done", title: "Hecho", cls: "done" },
+    { key: "bugs", title: "Bugs encontrados", cls: "bugs" },
+    { key: "fixed", title: "Bugs arreglados", cls: "fixed" }
   ];
 
   const state = { q: "", phase: "all", sort: "order" };
@@ -101,7 +97,7 @@
 
       const body = colEl.querySelector(".col-body");
       if (!items.length) {
-        body.innerHTML = '<div class="empty" style="padding:18px 8px;font-size:12px">Sin tarjetas</div>';
+        body.innerHTML = '<div class="col-empty">Sin tarjetas</div>';
       } else {
         items.forEach((item) => body.appendChild(renderCard(item, col.key)));
       }
@@ -121,27 +117,25 @@
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", "Abrir detalle de " + item.id + ": " + item.title);
 
-    let html = '<span class="card-id">' + esc(item.id) + '<span class="card-open" aria-hidden="true">Abrir ›</span></span>' +
-               '<div class="card-title">' + esc(item.title) + "</div>";
-
-    if (kind === "bugs" || kind === "fixed") {
-      const sev = (item.severity || "bajo").toLowerCase();
-      html += '<div class="card-foot">' +
-                '<span class="sev ' + esc(sev) + '">' + esc(item.severity) + "</span>" +
-                '<span class="bug-status">' + esc(item.status || "") + "</span>" +
-              "</div>";
-    } else {
-      html += '<div class="card-sub">' + esc(item.phaseName) + "</div>";
-    }
+    const logs = logsOf(item);
+    const isBug = kind === "bugs" || kind === "fixed";
+    let html =
+      '<div class="card-top"><span class="card-id">' + esc(item.id) + "</span>" +
+        (logs.length ? '<span class="card-log" title="Anotaciones en la bitácora">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>' +
+          logs.length + "</span>" : "") +
+      "</div>" +
+      '<p class="card-title">' + esc(item.title) + "</p>";
 
     const note = item.note || item.detail;
-    if (note) {
-      html += '<div class="card-note">' + esc(note) + "</div>";
-    }
+    if (note) html += '<p class="card-note">' + esc(note) + "</p>";
 
-    const logs = logsOf(item);
-    if (logs.length) {
-      html += '<span class="card-log">' + logs.length + (logs.length === 1 ? " anotación" : " anotaciones") + "</span>";
+    if (isBug) {
+      html += '<div class="card-foot"><span class="sev ' + sevClass(item.severity) + '">' + esc(item.severity || "Bajo") + "</span>" +
+              '<span class="card-status">' + esc(item.status || "") + "</span></div>";
+    } else {
+      html += '<div class="card-foot"><span class="tag">' + esc(String(item.phaseCode || "").replace(/^Hito\s+/i, "")) + "</span>" +
+              '<span class="card-phase">' + esc(item.phaseName) + "</span></div>";
     }
 
     card.innerHTML = html;
@@ -158,6 +152,11 @@
     return card;
   }
 
+  function sevClass(sev) {
+    return String(sev || "bajo").toLowerCase()
+      .replace(/[áà]/g, "a").replace(/[éè]/g, "e").replace(/[íì]/g, "i").replace(/[óò]/g, "o").replace(/[úü]/g, "u");
+  }
+
   function logsOf(item) {
     return Array.isArray(item.log) ? item.log : [];
   }
@@ -166,13 +165,13 @@
     lastFocused = document.activeElement;
 
     const logs = logsOf(item);
-    const statusLabel = kind === "fixed" ? "ARREGLADO" : STATUS_LABEL[kind] || kind.toUpperCase();
+    const statusLabel = STATUS_LABEL[kind] || kind;
     const note = item.note || item.detail || "";
 
     let html =
       '<div class="modal-top">' +
         '<span class="modal-id">' + esc(item.id) + "</span>" +
-        '<span class="pill ' + (kind === "bugs" ? "blocked" : kind === "fixed" ? "done" : kind) + '">' + esc(statusLabel) + "</span>" +
+        '<span class="badge ' + (kind === "bugs" ? "blocked" : kind === "fixed" ? "done" : kind) + '">' + esc(statusLabel) + "</span>" +
       "</div>" +
       "<h2 id=\"modalTitle\">" + esc(item.title) + "</h2>";
 

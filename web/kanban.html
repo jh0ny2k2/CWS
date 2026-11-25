@@ -1,69 +1,52 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kanban · Construction World</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("cw-theme")||"dark"}catch(e){}</script>
 <link rel="stylesheet" href="assets/style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23ffb400'/%3E%3Ctext x='50' y='68' font-size='52' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%2316181b'%3ECW%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23f5a524'/%3E%3Ctext x='50' y='66' font-size='46' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%231a1205'%3ECW%3C/text%3E%3C/svg%3E">
 </head>
-<body>
+<body data-page="kanban">
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
 
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <div class="brand-mark">CW</div>
-      <div class="brand-text">
-        <strong id="brandName">Construction World</strong>
-        <span id="brandEngine">Unreal Engine 5.8</span>
+  <main class="main main-wide">
+    <header class="pagehead">
+      <div>
+        <p class="crumbs">Seguimiento <span>/</span> Tablero</p>
+        <h1>Kanban</h1>
+        <p class="sub">Tareas de la hoja de ruta y bugs. Abre cualquier tarjeta para ver su bitácora; los bugs resueltos pasan solos a «Arreglados».</p>
       </div>
-    </div>
-    <nav class="nav">
-      <a href="index.html">Hoja de ruta</a>
-      <a href="kanban.html" class="active">Kanban</a>
-    </nav>
-  </div>
-</header>
-
-<main class="wrap">
-
-  <section class="hero" style="grid-template-columns:1fr">
-    <div class="panel">
-      <p class="eyebrow">Tablero de trabajo</p>
-      <h1>Kanban
-        <small>Las tarjetas salen de la hoja de ruta: TO DO, DOING y DONE. Cada tarjeta se abre para ver su bitácora. «Bugs encontrados» recoge lo que falla; al arreglarlo pasa a «Bugs arreglados».</small>
-      </h1>
-      <div class="stats" style="margin-top:16px">
-        <div class="stat todo"><b id="kTodo">0</b><span>TO DO</span></div>
-        <div class="stat doing"><b id="kDoing">0</b><span>DOING</span></div>
-        <div class="stat done"><b id="kDone">0</b><span>DONE</span></div>
-        <div class="stat bug"><b id="kBug">0</b><span>BUGS</span></div>
-        <div class="stat fixed"><b id="kFixed">0</b><span>ARREGLADOS</span></div>
+      <div class="pagehead-stats">
+        <div><b id="kTodo">0</b><span>Por hacer</span></div>
+        <div><b id="kDoing">0</b><span>En curso</span></div>
+        <div><b id="kDone">0</b><span>Hechas</span></div>
+        <div class="bad"><b id="kBug">0</b><span>Bugs</span></div>
+        <div class="ok"><b id="kFixed">0</b><span>Arreglados</span></div>
       </div>
+    </header>
+
+    <div class="toolbar">
+      <label class="field-search"><input class="search" id="kSearch" type="search" placeholder="Filtrar tarjetas…" autocomplete="off"></label>
+      <select class="select" id="kPhase"><option value="all">Todos los hitos</option></select>
+      <select class="select" id="kSort">
+        <option value="order">Orden del plan</option>
+        <option value="phase">Agrupar por hito</option>
+      </select>
+      <span class="meta-note" id="kNote"></span>
     </div>
-  </section>
 
-  <div class="board-tools">
-    <input class="search" id="kSearch" type="search" placeholder="Filtrar tarjetas…" autocomplete="off" style="flex:1 1 240px">
-    <select class="select" id="kPhase"><option value="all">Todos los hitos</option></select>
-    <select class="select" id="kSort">
-      <option value="order">Orden del plan</option>
-      <option value="phase">Agrupar por hito</option>
-    </select>
-    <span class="meta-note" id="kNote"></span>
-  </div>
+    <div class="board" id="board"></div>
 
-  <div class="board" id="board"></div>
-
-  <p class="board-hint">Haz clic en cualquier tarjeta (o pulsa Enter con ella enfocada) para abrir su detalle y ver la bitácora de lo que se ha ido haciendo.</p>
-
-  <div class="foot">
-    <span>Actualizado: <code id="updated"></code></span>
-    <span>Fuente: <code id="source"></code></span>
-    <span>Recarga la página para ver los cambios (Ctrl+F5).</span>
-  </div>
-
-</main>
+    <footer class="foot">
+      <span>Actualizado <code id="updated"></code></span>
+      <span>Fuente <code id="source"></code></span>
+      <span>Clic o Enter sobre una tarjeta para abrir su detalle.</span>
+    </footer>
+  </main>
+</div>
 
 <div class="modal" id="modal" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -74,6 +57,7 @@
 </div>
 
 <script src="assets/data.js"></script>
+<script src="assets/shell.js"></script>
 <script src="assets/kanban.js"></script>
 </body>
 </html>

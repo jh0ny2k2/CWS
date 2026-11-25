@@ -186,7 +186,7 @@ const requiredFiles = [
   "docs/ASSETS.md",
   "README.md",
   "Hojaruta.md",
-  "AGENTS.md",
+  "CLAUDE.md",
   "memoria.md",
 ];
 

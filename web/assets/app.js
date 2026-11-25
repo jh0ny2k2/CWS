@@ -1,27 +1,10 @@
+// Hoja de ruta: indicadores, recorrido de hitos, "ahora mismo" y lista de hitos con sus tareas.
 (function () {
   const CW = window.CW;
   if (!CW) return;
 
   const STATUS_LABEL = { done: "Hecho", doing: "En curso", todo: "Pendiente", blocked: "Bloqueado" };
-
-  const els = {
-    brandName: document.getElementById("brandName"),
-    brandEngine: document.getElementById("brandEngine"),
-    globalPct: document.getElementById("globalPct"),
-    globalBar: document.getElementById("globalBar"),
-    statDone: document.getElementById("statDone"),
-    statDoing: document.getElementById("statDoing"),
-    statTodo: document.getElementById("statTodo"),
-    statBugs: document.getElementById("statBugs"),
-    nowList: document.getElementById("nowList"),
-    phases: document.getElementById("phases"),
-    search: document.getElementById("search"),
-    chips: document.getElementById("chips"),
-    metaNote: document.getElementById("metaNote"),
-    updated: document.getElementById("updated"),
-    source: document.getElementById("source"),
-    footCounts: document.getElementById("footCounts")
-  };
+  const $ = (id) => document.getElementById(id);
 
   const allTasks = [];
   CW.phases.forEach((phase) => {
@@ -36,73 +19,104 @@
   allTasks.forEach((t) => { counts[t.status] = (counts[t.status] || 0) + 1; });
   const total = allTasks.length;
   const pct = total ? Math.round((counts.done / total) * 100) : 0;
+  const openBugs = CW.bugs.filter((b) => String(b.status || "").toLowerCase().indexOf("resuelt") !== 0).length;
 
-  // Header + stats
+  // Indicadores
   document.title = "Hoja de ruta · " + CW.project;
-  els.brandName.textContent = CW.project;
-  els.brandEngine.textContent = CW.engine;
-  els.globalPct.innerHTML = pct + "<span>%</span>";
-  els.globalBar.style.width = pct + "%";
-  els.statDone.textContent = counts.done;
-  els.statDoing.textContent = counts.doing;
-  els.statTodo.textContent = counts.todo;
-  els.statBugs.textContent = CW.bugs.length;
-  els.updated.textContent = CW.updated;
-  els.source.textContent = CW.source;
-  els.footCounts.textContent = total + " tareas · " + CW.phases.length + " hitos · " + CW.bugs.length + " bugs";
+  $("globalRing").style.setProperty("--p", pct);
+  $("globalPct").textContent = pct + "%";
+  $("globalCount").textContent = counts.done + " / " + total;
+  $("statDone").textContent = counts.done;
+  $("statDoing").textContent = counts.doing;
+  $("statTodo").textContent = counts.todo;
+  $("statBugs").textContent = openBugs;
+  $("footCounts").textContent = total + " tareas · " + CW.phases.length + " hitos · " + CW.bugs.length + " bugs registrados";
 
-  // "Ahora mismo"
-  els.nowList.innerHTML = CW.now.map((item) => {
-    const icon = item.status === "done" ? "✔" : item.status === "doing" ? "◐" : "○";
-    const cls = item.status === "done" ? "done" : item.status === "doing" ? "doing" : "todo";
-    return '<li class="task ' + cls + '" style="border:1px solid var(--line)">' +
-      '<span class="tick">' + icon + "</span><span>" + escapeHtml(item.title) + "</span></li>";
-  }).join("");
+  // Estado calculado de cada hito
+  const phaseInfo = CW.phases.map((phase) => {
+    const n = phase.tasks.length;
+    const done = phase.tasks.filter((t) => t.status === "done").length;
+    const doing = phase.tasks.filter((t) => t.status === "doing").length;
+    const status = n && done === n ? "done" : (done + doing > 0 ? "doing" : "todo");
+    return { phase, n, done, doing, status, pct: n ? Math.round((done / n) * 100) : 0 };
+  });
+  const phasesDone = phaseInfo.filter((p) => p.status === "done").length;
+  $("phaseSummary").textContent = phasesDone + " de " + phaseInfo.length + " completados";
 
-  // Phases
+  // Recorrido de hitos
+  $("stepper").innerHTML = phaseInfo.map((p) =>
+    '<li class="step ' + p.status + '">' +
+      '<a href="#phase-' + esc(p.phase.id) + '" data-phase="' + esc(p.phase.id) + '">' +
+        '<span class="step-node">' + (p.status === "done" ? "✓" : "") + "</span>" +
+        '<span class="step-text"><b>' + esc(shortCode(p.phase.code)) + "</b><span>" + esc(p.phase.name) + "</span></span>" +
+        '<span class="step-pct">' + p.pct + "%</span>" +
+      "</a>" +
+    "</li>"
+  ).join("");
+
+  // Ahora mismo: lo ultimo primero
+  $("nowList").innerHTML = (CW.now || []).slice().reverse().slice(0, 7).map((item) =>
+    '<li class="' + esc(item.status) + '">' +
+      '<span class="badge ' + esc(item.status) + '">' + esc(STATUS_LABEL[item.status] || item.status) + "</span>" +
+      "<span>" + esc(item.title) + "</span>" +
+    "</li>"
+  ).join("");
+
+  // Hitos
   const openState = {};
-  CW.phases.forEach((phase) => {
-    const phaseTasks = phase.tasks;
-    const done = phaseTasks.filter((t) => t.status === "done").length;
-    const doing = phaseTasks.filter((t) => t.status === "doing").length;
-    const ppct = phaseTasks.length ? Math.round((done / phaseTasks.length) * 100) : 0;
-    const phaseStatus = done === phaseTasks.length ? "done" : (done + doing > 0 ? "doing" : "todo");
-    openState[phase.id] = phase.id === CW.currentPhase || phaseStatus === "doing";
+  const container = $("phases");
+  phaseInfo.forEach((p) => {
+    const phase = p.phase;
+    openState[phase.id] = phase.id === CW.currentPhase || p.status === "doing";
 
     const section = document.createElement("section");
-    section.className = "phase " + phaseStatus + (openState[phase.id] ? " open" : "");
+    section.className = "phase " + p.status + (openState[phase.id] ? " open" : "");
+    section.id = "phase-" + phase.id;
     section.dataset.phase = phase.id;
 
     section.innerHTML =
-      '<div class="phase-head">' +
-        '<span class="phase-badge">' + escapeHtml(phase.code) + "</span>" +
-        "<div>" +
-          '<div class="phase-title">' + escapeHtml(phase.name) + "</div>" +
-          '<div class="phase-sub">' + escapeHtml(phase.window) + " · " + phaseTasks.length + " tareas</div>" +
-        "</div>" +
-        '<div class="phase-right">' +
-          '<div class="mini-bar"><i style="width:' + ppct + '%"></i></div>' +
-          '<span class="count">' + done + "/" + phaseTasks.length + "</span>" +
-          '<span class="caret">▶</span>' +
-        "</div>" +
-      "</div>" +
+      '<button class="phase-head" type="button" aria-expanded="' + openState[phase.id] + '">' +
+        '<span class="phase-code">' + esc(shortCode(phase.code)) + "</span>" +
+        '<span class="phase-main">' +
+          '<span class="phase-title">' + esc(phase.name) + "</span>" +
+          '<span class="phase-sub">' + esc(phase.window) + " · " + p.n + " tareas</span>" +
+        "</span>" +
+        '<span class="badge ' + p.status + '">' + STATUS_LABEL[p.status] + "</span>" +
+        '<span class="phase-progress"><span class="meter"><i style="width:' + p.pct + '%"></i></span>' +
+          '<span class="count">' + p.done + "/" + p.n + "</span></span>" +
+        '<svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' +
+      "</button>" +
       '<div class="phase-body">' +
-        '<div class="phase-goal"><b>Objetivo:</b> ' + escapeHtml(phase.goal) +
-          "<br><b>Puerta de salida:</b> " + escapeHtml(phase.gate) + "</div>" +
+        '<dl class="phase-goal">' +
+          "<div><dt>Objetivo</dt><dd>" + esc(phase.goal) + "</dd></div>" +
+          "<div><dt>Puerta de salida</dt><dd>" + esc(phase.gate) + "</dd></div>" +
+        "</dl>" +
         '<div class="tasks"></div>' +
       "</div>";
 
     const tasksBox = section.querySelector(".tasks");
-    phaseTasks.forEach((task) => {
-      tasksBox.appendChild(renderTask(task));
-    });
+    phase.tasks.forEach((task) => tasksBox.appendChild(renderTask(task)));
 
-    section.querySelector(".phase-head").addEventListener("click", () => {
+    const head = section.querySelector(".phase-head");
+    head.addEventListener("click", () => {
       section.classList.toggle("open");
       openState[phase.id] = section.classList.contains("open");
+      head.setAttribute("aria-expanded", openState[phase.id]);
     });
 
-    els.phases.appendChild(section);
+    container.appendChild(section);
+  });
+
+  // Al pulsar un hito del recorrido, abrirlo y desplazarse.
+  $("stepper").addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-phase]");
+    if (!a) return;
+    const sec = document.getElementById("phase-" + a.dataset.phase);
+    if (!sec) return;
+    e.preventDefault();
+    sec.classList.add("open");
+    openState[a.dataset.phase] = true;
+    sec.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   function renderTask(task) {
@@ -110,82 +124,72 @@
     row.className = "task " + task.status;
     row.dataset.search = (task.id + " " + task.title + " " + (task.note || "") + " " + (task.evidence || "") + " " + task.phaseName).toLowerCase();
 
-    const icon = task.status === "done" ? "✔" : task.status === "doing" ? "◐" : "";
     let note = "";
-    if (task.evidence) note += '<div class="task-note"><b>Evidencia:</b> ' + escapeHtml(task.evidence) + "</div>";
-    if (task.note) note += '<div class="task-note">' + escapeHtml(task.note) + "</div>";
+    if (task.evidence) note += '<p class="task-note"><b>Evidencia</b> ' + esc(task.evidence) + "</p>";
+    if (task.note) note += '<p class="task-note">' + esc(task.note) + "</p>";
 
     row.innerHTML =
-      '<span class="tick">' + icon + "</span>" +
-      "<div>" +
-        '<div class="task-title">' + (task.status === "done" ? "<s>" + escapeHtml(task.title) + "</s>" : escapeHtml(task.title)) + "</div>" +
-        note +
-      "</div>" +
-      '<span class="task-id">' + escapeHtml(task.id) + "</span>";
-
+      '<span class="tick" aria-hidden="true">' + (task.status === "done" ? "✓" : "") + "</span>" +
+      '<div class="task-main"><p class="task-title">' + esc(task.title) + "</p>" + note + "</div>" +
+      '<span class="badge ' + task.status + '">' + (STATUS_LABEL[task.status] || task.status) + "</span>" +
+      '<span class="task-id">' + esc(task.id) + "</span>";
     return row;
   }
 
-  // Filters
+  // Filtros
   let activeFilter = "all";
   const phaseEls = Array.from(document.querySelectorAll(".phase"));
 
   function applyFilters() {
-    const q = els.search.value.trim().toLowerCase();
+    const q = $("search").value.trim().toLowerCase();
     let visible = 0;
 
     phaseEls.forEach((phaseEl) => {
-      const rows = Array.from(phaseEl.querySelectorAll(".task"));
       let phaseVisible = 0;
-
-      rows.forEach((row) => {
-        const matchText = !q || row.dataset.search.includes(q);
-        const matchStatus = activeFilter === "all" || row.classList.contains(activeFilter);
-        const show = matchText && matchStatus;
+      phaseEl.querySelectorAll(".task").forEach((row) => {
+        const show = (!q || row.dataset.search.includes(q)) &&
+          (activeFilter === "all" || row.classList.contains(activeFilter));
         row.style.display = show ? "" : "none";
         if (show) phaseVisible++;
       });
 
-      const showPhase = phaseVisible > 0;
-      phaseEl.style.display = showPhase ? "" : "none";
-      if (q || activeFilter !== "all") {
-        phaseEl.classList.toggle("open", showPhase);
-      } else {
-        phaseEl.classList.toggle("open", openState[phaseEl.dataset.phase]);
-      }
+      phaseEl.style.display = phaseVisible ? "" : "none";
+      const open = (q || activeFilter !== "all") ? phaseVisible > 0 : openState[phaseEl.dataset.phase];
+      phaseEl.classList.toggle("open", !!open);
+      phaseEl.querySelector(".phase-head").setAttribute("aria-expanded", !!open);
       visible += phaseVisible;
     });
 
-    els.metaNote.textContent = visible + " de " + total + " tareas visibles";
+    $("metaNote").textContent = visible + " de " + total + " tareas";
   }
 
-  els.chips.addEventListener("click", (event) => {
+  $("chips").addEventListener("click", (event) => {
     const btn = event.target.closest(".chip");
     if (!btn) return;
-    els.chips.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+    $("chips").querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
     btn.classList.add("active");
     activeFilter = btn.dataset.filter;
     applyFilters();
   });
 
   let debounce;
-  els.search.addEventListener("input", () => {
+  $("search").addEventListener("input", () => {
     clearTimeout(debounce);
     debounce = setTimeout(applyFilters, 120);
   });
-
-  els.search.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { els.search.value = ""; applyFilters(); }
+  $("search").addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("search").value = ""; applyFilters(); }
   });
 
   applyFilters();
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  function shortCode(code) {
+    return String(code || "").replace(/^Hito\s+/i, "");
+  }
+
+  function esc(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 })();

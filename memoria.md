@@ -213,3 +213,27 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Limpieza: scripts de prueba desechables (`Scripts/Python/cw_introspect_props.py`, `test_materials.py`, `test_mel.py`) eliminados; se conservan `cw_build_pbr_materials.py` y `cw_generate_audio.py` como generadores reproducibles.
 - Resultado: H4 cerrado; siguiente hito es H3 (primera misión jugable).
 - Commit y push: `51cec11` ("H4: pulido grafico, PBR con suciedad, luz de tarde, polvo, audio, lluvia e instrumentacion (F5.01-F5.08)") subido a `origin/main` con 19 objetos Git LFS (3.7 MB). Árbol de trabajo limpio.
+
+## [2026-11-25 10:00] Revisión de cómo está implementado el proyecto
+
+- Repaso de solo lectura del código C++ (`Source/ConstructionWorld/{Public,Private}`, unas 8.300 líneas), los scripts (`Scripts/Python`, `Scripts/ci`), el panel `web/` y la carpeta sin seguimiento `COSAS/PROPS MATERIAL` (2 `.unitypackage` de props de obra).
+- Archivos afectados: `memoria.md` (solo esta entrada).
+- Resultado: resumen dado al usuario. Hallazgos: todas las mallas son BasicShapes del motor, los vehículos se mueven de forma cinemática (sin física de Chaos) y los paquetes de `COSAS/` son de Unity, así que no se pueden usar directamente en UE.
+
+## [2026-11-25 10:30] Panel web: nueva página «Memoria» ordenada por fecha
+
+- Nueva página `web/memoria.html` + `web/assets/memoria.js`: lee `memoria.md` en vivo, separa cada entrada `## [fecha] título`, la renderiza (listas, `código`, negrita) y la muestra agrupada por día, las más nuevas primero (selector para invertir el orden, filtro por día y buscador).
+- `web/server.js` sirve ahora `/memoria.md` desde la raíz del proyecto (sin abrir el resto de carpetas); enlace «Memoria» añadido a la navegación de `web/index.html` y `web/kanban.html`; estilos `.mem-*` en `web/assets/style.css`.
+- Archivos afectados: `web/memoria.html`, `web/assets/memoria.js`, `web/assets/style.css`, `web/server.js`, `web/index.html`, `web/kanban.html`, `memoria.md`.
+- Nota: el trabajo a medias de H0/H1-A (interacción, mando, salida segura, métricas) sigue sin compilar ni subir; la compilación se interrumpió a petición del usuario.
+
+## [2026-11-25 11:15] Panel web: rediseño profesional
+
+- Nuevo diseño tipo panel de gestión: barra lateral fija (marca, navegación con iconos, progreso global, fecha de actualización), cabecera de página con migas, tema oscuro/claro persistente (`localStorage`), paleta sobria con ámbar como acento.
+- Hoja de ruta: anillo de progreso, KPIs, «Recorrido de hitos» clicable, «Ahora mismo» (lo último primero), hitos en acordeón con tabla de tareas y etiquetas de estado; filtro segmentado.
+- Kanban: columnas renombradas en castellano, tarjetas con ID, contador de bitácora, etiqueta de hito; corregida la clase de severidad «Crítico» (la tilde impedía aplicar su color). Modal rediseñado.
+- Memoria: línea temporal por días.
+- Nuevo `web/assets/shell.js` (estructura común) y `web/assets/style.css` reescrito; `app.js`, `kanban.js`, `memoria.js` y las 3 páginas adaptados. Lista `CW.now` actualizada (quitaba H1-B «en curso» y el launcher «pendiente», ya resueltos).
+- `Scripts/ci/validate.mjs` y `CONTRIBUTING.md` apuntan ahora a `CLAUDE.md` (sustituye a `AGENTS.md`).
+- Verificado con jsdom: 0 errores JS en las 3 páginas, 10 hitos/96 tareas, filtros, stepper, modal, cambio de tema y 26 entradas de memoria. Capturas con Chrome headless no posibles (acceso denegado al escribir el PNG).
+- Archivos afectados: `web/index.html`, `web/kanban.html`, `web/memoria.html`, `web/assets/{style.css,shell.js,app.js,kanban.js,memoria.js,data.js}`, `Scripts/ci/validate.mjs`, `CONTRIBUTING.md`, `memoria.md`.

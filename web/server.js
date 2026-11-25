@@ -23,8 +23,29 @@ const TYPES = {
   ".txt": "text/plain; charset=utf-8"
 };
 
+// memoria.md vive en la raiz del proyecto (fuera de web/): se sirve en vivo para memoria.html.
+const MEMORIA = path.resolve(ROOT, "..", "memoria.md");
+
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+
+  if (urlPath === "/memoria.md") {
+    fs.readFile(MEMORIA, (err, buf) => {
+      if (err) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("404 No encontrado: memoria.md");
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Length": buf.length
+      });
+      res.end(buf);
+    });
+    return;
+  }
+
   const relative = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
   const target = path.resolve(ROOT, relative);
 
@@ -65,5 +86,6 @@ server.listen(PORT, HOST, () => {
   console.log("Panel Construction World: http://" + HOST + ":" + PORT);
   console.log("Hoja de ruta:            http://" + HOST + ":" + PORT + "/index.html");
   console.log("Kanban:                  http://" + HOST + ":" + PORT + "/kanban.html");
+  console.log("Memoria:                 http://" + HOST + ":" + PORT + "/memoria.html");
   console.log("Ctrl+C para parar.");
 });
