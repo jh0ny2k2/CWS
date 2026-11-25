@@ -263,3 +263,4 @@ Historial de acciones realizadas. Se lee antes de cualquier tarea y se actualiza
 - Panel: BUG-014 (Medio, Resuelto), tarea T-008 (done), bitácora en F2.10, `CW.updated` 2026-11-25 19:40. README actualizado con la nueva suite (y corregida la ruta `.\Scripts\RunTests.ps1`, que salía sin barras).
 - Archivos afectados: `Source/ConstructionWorld/Public/{CWVehicleBase,CWTestRunner}.h`, `Source/ConstructionWorld/Private/{CWVehicleBase,CWExcavator,CWDumpTruck,CWTestRunner,CWTestSubsystem}.cpp`, `Scripts/RunTests.ps1`, `web/assets/data.js`, `README.md`, `memoria.md`.
 - Pendiente: probarlo jugando a mano en TestLevel (solo verificado en headless).
+- Commit `194692b` subido a `origin/main`.
